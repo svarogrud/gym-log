@@ -178,7 +178,7 @@ svg.anim .c{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:2 2;fill:none}
 svg.anim .pl{fill:none;stroke:var(--muted);stroke-width:3}
 .draft{display:flex;flex-direction:column;gap:10px;padding:12px 0 4px}
 .draft p{color:var(--muted);font-size:14px}
-.odrag{width:28px;height:36px;display:grid;place-items:center;font-size:20px;color:var(--muted);cursor:grab;touch-action:none;flex:none;user-select:none;-webkit-user-select:none}
+.odrag{width:36px;height:40px;display:grid;place-items:center;font-size:22px;color:var(--muted);cursor:grab;touch-action:none;flex:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .orow{transition:transform .12s ease;background:var(--bg);position:relative}
 .orow.drag{transition:none;z-index:2;box-shadow:0 6px 18px rgb(0 0 0 / .25);border-radius:4px}
 .langs{display:flex;gap:8px;flex-wrap:wrap}
@@ -196,6 +196,12 @@ svg.anim .pl{fill:none;stroke:var(--muted);stroke-width:3}
 .exh2 .dn{display:inline-flex}
 .exh2 .ico.svg{font-size:26px}
 .exr{grid-template-columns:22px 1fr auto}
+.exr.dr{grid-template-columns:22px 1fr auto 40px;transition:transform .12s ease;background:var(--bg);position:relative}
+.exr.drag,.orow.drag{transition:none;z-index:3;box-shadow:0 6px 18px rgb(0 0 0 / .3);border-radius:4px}
+.exr .odrag{width:40px;height:44px;justify-self:end}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;z-index:50;
+  background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:6px;font-weight:600;font-size:14px;transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100% - 32px)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
 .exi{display:grid;place-items:center}
 .exi .dot{font-size:10px;color:var(--muted)}
 .chips{display:flex;flex-wrap:wrap;gap:8px}

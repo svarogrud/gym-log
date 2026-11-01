@@ -1,11 +1,15 @@
 (function(){
   'use strict';
-  var APP_VERSION='19';
+  var APP_VERSION='20';
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
   try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
   var LOC=LANG==='en'?'en-GB':LOC;
   var EN={
+"Порядок дня збережено": "Day order saved",
+"Порядок збережено на телефоні": "Order saved on this phone",
+"Перетягнути": "Drag",
+"Натисніть на вправу, щоб побачити схему руху, медіа й останні результати. Перетягніть за ≡, щоб змінити порядок вправ у дні.": "Tap an exercise to see the movement diagram, media and recent results. Drag by ≡ to change the order within a day.",
 "Дні тренувань": "Workout days",
 "Додати в це тренування": "Add to this workout",
 "Збережено. Записую в таблицю…": "Saved. Writing to the sheet…",
@@ -1144,37 +1148,81 @@
     var fb=document.getElementById('finb');if(fb)fb.hidden=false;
     if(rerender)renderWorkoutKeep();
   }
-  // перетягування за ручку ≡ у вікні «Порядок вправ»
-  pk.addEventListener('pointerdown',function(e){
-    var hd=e.target.closest&&e.target.closest('.odrag');if(!hd||!cur)return;
-    var row=hd.closest('.orow'),list=row.parentNode,rows=[].slice.call(list.querySelectorAll('.orow'));
-    var from=rows.indexOf(row),to=from,y0=e.clientY,rh=row.getBoundingClientRect().height,scroller=pk.querySelector('.pkp'),st0=scroller?scroller.scrollTop:0;
-    e.preventDefault();
+  /* ---------- перетягування рядків за ручку ≡ ----------
+     Працює пальцем і мишею (pointer events), прокручує список біля країв.
+     scroller — елемент, що прокручується (або null для сторінки). onDrop(from,to). */
+  var dragging=false,dragJustEnded=0;
+  function dragRows(e,rowSel,scroller,onDrop){
+    var hd=e.target.closest('.odrag');if(!hd)return false;
+    var row=hd.closest(rowSel),list=row&&row.parentNode;if(!row)return false;
+    var rows=[].slice.call(list.children).filter(function(r){return r.matches(rowSel)&&!r.hidden});
+    var from=rows.indexOf(row);if(from<0)return false;
+    e.preventDefault();e.stopPropagation();
+    var sc=function(){return scroller?scroller.scrollTop:window.scrollY};
+    var s0=sc(),y0=e.clientY,lastY=e.clientY,to=from,raf=0;
+    var mids=rows.map(function(r){var b=r.getBoundingClientRect();return b.top+b.height/2+s0});
+    var rh=row.getBoundingClientRect().height;
+    dragging=true;row.classList.add('drag');
     try{hd.setPointerCapture(e.pointerId)}catch(er){}
-    row.classList.add('drag');
-    function mv(ev){
-      var dy=ev.clientY-y0;
-      row.style.transform='translateY('+dy+'px)';
-      to=Math.max(0,Math.min(rows.length-1,from+Math.round(dy/rh)));
+    function layout(){
+      var docY=lastY+sc();
+      row.style.transform='translateY('+(docY-(y0+s0))+'px)';
+      to=rows.filter(function(r,i){return i!==from&&mids[i]<docY}).length;
       rows.forEach(function(r,i){
         if(r===row)return;
         var sh=(from<to&&i>from&&i<=to)?-rh:(from>to&&i<from&&i>=to)?rh:0;
         r.style.transform=sh?'translateY('+sh+'px)':'';
       });
     }
+    function edge(){
+      var top=scroller?scroller.getBoundingClientRect().top:0,bot=scroller?scroller.getBoundingClientRect().bottom:window.innerHeight,v=0;
+      if(lastY<top+70)v=-Math.ceil((top+70-lastY)/6);else if(lastY>bot-70)v=Math.ceil((lastY-(bot-70))/6);
+      if(v){if(scroller)scroller.scrollTop+=v;else window.scrollBy(0,v);layout()}
+      raf=requestAnimationFrame(edge);
+    }
+    raf=requestAnimationFrame(edge);
+    function mv(ev){lastY=ev.clientY;layout()}
     function up(){
+      cancelAnimationFrame(raf);dragging=false;dragJustEnded=Date.now();
       hd.removeEventListener('pointermove',mv);hd.removeEventListener('pointerup',up);hd.removeEventListener('pointercancel',up);
-      if(to!==from){
-        var ids=rows.map(function(r){return r.getAttribute('data-id')}),id=ids.splice(from,1)[0];
-        ids.splice(to,0,id);
-        sIds(cur).forEach(function(x){if(ids.indexOf(x)<0)ids.push(x)});
-        cur.order=ids;touch(cur);
-      }
-      openOrder();
-      var p2=pk.querySelector('.pkp');if(p2)p2.scrollTop=st0;
+      rows.forEach(function(r){r.style.transform=''});row.classList.remove('drag');
+      if(to!==from)onDrop(from,to,rows);
     }
     hd.addEventListener('pointermove',mv);hd.addEventListener('pointerup',up);hd.addEventListener('pointercancel',up);
+    return true;
+  }
+  // у вікні «Порядок вправ» (посеред тренування)
+  pk.addEventListener('pointerdown',function(e){
+    if(!cur||!e.target.closest||!e.target.closest('.odrag'))return;
+    var scroller=pk.querySelector('.pkp');
+    dragRows(e,'.orow',scroller,function(from,to,rows){
+      var st=scroller.scrollTop;
+      var ids=rows.map(function(r){return r.getAttribute('data-id')}),id=ids.splice(from,1)[0];
+      ids.splice(to,0,id);
+      sIds(cur).forEach(function(x){if(ids.indexOf(x)<0)ids.push(x)});
+      cur.order=ids;touch(cur);
+      openOrder();
+      var p2=pk.querySelector('.pkp');if(p2)p2.scrollTop=st;
+    });
   });
+  // на екрані «Вправи»: порядок дня зберігається одразу
+  app.addEventListener('pointerdown',function(e){
+    if(view!=='exlist'||!e.target.closest||!e.target.closest('.odrag'))return;
+    var g=e.target.closest('details.exg'),k=g&&g.getAttribute('data-g');if(!k||!DAYS[k])return;
+    dragRows(e,'.exr',null,function(from,to,rows){
+      var ids=rows.map(function(r){return r.getAttribute('data-ex')}),id=ids.splice(from,1)[0];
+      ids.splice(to,0,id);
+      var y=window.scrollY;
+      saveDayOrder(k,ids).then(function(ok){toast(ok?T('Порядок дня збережено'):T('Порядок збережено на телефоні'))});
+      renderExList();window.scrollTo(0,y);
+    });
+  });
+  function toast(msg){
+    var t=document.getElementById('toast');
+    if(!t){t=document.createElement('div');t.id='toast';t.className='toast';t.setAttribute('role','status');document.body.appendChild(t)}
+    t.textContent=msg;t.classList.add('on');
+    clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('on')},2200);
+  }
   function renderWorkoutKeep(){var y=window.scrollY;renderWorkout();window.scrollTo(0,y)}
 
   /* ---------- екран «Вправи» ---------- */
@@ -1189,12 +1237,13 @@
     Object.keys(sessions).forEach(function(k){var s=sessions[k];if(s.finished&&s.ex&&s.ex[id]&&anyDone(s.ex[id])&&(!best||s.date>best))best=s.date});
     return best;
   }
-  function exRow(id){
+  function exRow(id,drag){
     var d=EX[id],l=lastDoneDate(id);
-    return '<button class="row exr" data-act="info" data-ex="'+id+'" data-n="'+esc(normName(d.n+' '+(d.j||'')+' '+(d.tag||'')))+'">'+
+    return '<button class="row exr'+(drag?' dr':'')+'" data-act="info" data-ex="'+id+'" data-n="'+esc(normName(d.n+' '+(d.j||'')+' '+(d.tag||'')))+'">'+
       '<div class="exi">'+(window.GymAnim&&GymAnim.has(id)?'<span class="dot" aria-hidden="true">▶</span>':'')+'</div>'+
       '<div><div class="rn">'+esc(d.n)+'</div><div class="rs">'+esc(exSummary(id))+'</div></div>'+
-      '<div class="rr">'+(l?fmtDate(l)+(l.slice(0,4)!==todayISO().slice(0,4)?'<br>'+l.slice(0,4):''):'—')+'</div></button>';
+      '<div class="rr">'+(l?fmtDate(l)+(l.slice(0,4)!==todayISO().slice(0,4)?'<br>'+l.slice(0,4):''):'—')+'</div>'+
+      (drag?'<span class="odrag" aria-label="'+T('Перетягнути')+'">≡</span>':'')+'</button>';
   }
   var exOpen={};
   function renderExList(){
@@ -1205,7 +1254,7 @@
     DAYKEYS.forEach(function(k){
       var ids=orderFor(k);if(!ids.length)return;
       var rows='',n=0;
-      ids.forEach(function(id){if(EX[id]){rows+=exRow(id);seen[id]=1;n++}});
+      ids.forEach(function(id){if(EX[id]){rows+=exRow(id,true);seen[id]=1;n++}});
       // категорії згорнуті; відкриті запам’ятовуються, поки апка відкрита
       h+='<details class="exg" data-g="'+k+'"'+(exOpen[k]?' open':'')+'><summary class="exh2"><span class="dn">'+badge(DAYS[k])+'</span><span class="exn">'+esc(DAYS[k].n)+'</span><span class="exc num">'+n+'</span></summary><div class="rows">'+rows+'</div></details>';
     });
@@ -1215,7 +1264,7 @@
       rest.forEach(function(id){h+=exRow(id)});
       h+='</div></details>';
     }
-    h+='<p class="sync">'+T('Натисніть на вправу, щоб побачити схему руху, медіа й останні результати. Програму можна змінити у вкладці «Програма» таблиці.')+'</p>';
+    h+='<p class="sync">'+T('Натисніть на вправу, щоб побачити схему руху, медіа й останні результати. Перетягніть за ≡, щоб змінити порядок вправ у дні.')+'</p>';
     app.innerHTML=h;window.scrollTo(0,0);
   }
 
@@ -1367,6 +1416,8 @@
     touch(cur);refreshCard(id);
   }
   function onClick(e){
+    if(e.target.closest&&e.target.closest('.odrag'))return;
+    if(Date.now()-dragJustEnded<350)return;
     if(e.target===pk){var wasOrd=!!pk.querySelector('.olist');closePicker();if(wasOrd&&view==='workout')renderWorkoutKeep();return}
     var b=e.target.closest('[data-act]');
     if(!b||b.tagName==='INPUT')return;
@@ -1537,13 +1588,13 @@
   app.addEventListener('touchstart',function(e){var c=e.target.closest&&e.target.closest('#cal');if(!c||e.touches.length!==1){tx=null;return}tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
   var sx=null,sy=null;
   app.addEventListener('touchstart',function(e){
-    if(e.touches.length!==1||(e.target.closest&&e.target.closest('#cal,input,.orow'))){sx=null;return}
+    if(e.touches.length!==1||(e.target.closest&&e.target.closest('#cal,input,.orow,.odrag'))){sx=null;return}
     sx=e.touches[0].clientX;sy=e.touches[0].clientY;
   },{passive:true});
   app.addEventListener('touchend',function(e){
     if(sx==null)return;
     var t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;sx=null;
-    if(Math.abs(dx)<70||Math.abs(dx)<Math.abs(dy)*1.8||!pk.hidden)return;
+    if(dragging||Date.now()-dragJustEnded<350||Math.abs(dx)<70||Math.abs(dx)<Math.abs(dy)*1.8||!pk.hidden)return;
     if(view==='home'&&dx>0)renderExList();
     else if(view==='exlist'&&dx<0)renderHome();
   },{passive:true});
