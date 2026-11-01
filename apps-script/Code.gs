@@ -54,6 +54,8 @@ function doPost(e) {
         return json(addExercise(ss, req));
       case 'saveDayOrder':
         return json(saveDayOrder(ss, req));
+      case 'setExerciseDays':
+        return json(setExerciseDays(ss, req));
       default:
         return json({ ok: false, error: 'bad_action' });
     }
@@ -212,6 +214,23 @@ function saveDayOrder(ss, req) {
   if (row < 2) return { ok: false, error: 'no_day' };
   d.getRange(row, col).setNumberFormat('@').setValue((req.order || []).join(', '));
   return { ok: true };
+}
+
+/** Дні вправи: оновлює колонку «Дні» у рядку вправи (шукає за ID) у вкладці «Програма». */
+function setExerciseDays(ss, req) {
+  const p = ss.getSheetByName(PROGRAM_NAME);
+  if (!p) return { ok: false, error: 'no_program' };
+  const v = p.getDataRange().getDisplayValues();
+  const head = (v[0] || []).map(norm);
+  const idCol = head.indexOf('id') >= 0 ? head.indexOf('id') : 8;
+  const dCol = head.indexOf('дні') >= 0 ? head.indexOf('дні') : 3;
+  for (let i = 1; i < v.length; i++) {
+    if (String(v[i][idCol]).trim() === String(req.id)) {
+      p.getRange(i + 1, dCol + 1).setNumberFormat('@').setValue(String(req.days || ''));
+      return { ok: true, row: i + 1 };
+    }
+  }
+  return { ok: false, error: 'no_exercise' };
 }
 
 function sameDate(h, iso) {

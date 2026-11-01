@@ -192,6 +192,9 @@ svg.anim .pl{fill:none;stroke:var(--muted);stroke-width:3}
 .exr{grid-template-columns:22px 1fr auto}
 .exi{display:grid;place-items:center}
 .exi .dot{font-size:10px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:8px 12px;border-radius:999px;border:1.5px solid var(--dc);color:var(--ink);font-weight:600;font-size:14px}
+.chip.on{background:var(--dc);color:#fff}
 .yr{font-family:var(--f-display);font-weight:800;font-size:22px;color:var(--muted);padding:16px 0 4px;border-bottom:1px solid var(--line)}
 .more{width:100%;padding:14px;font-weight:600;color:var(--accent);text-align:center}
 .imp{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px}

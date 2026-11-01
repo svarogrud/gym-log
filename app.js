@@ -1,11 +1,16 @@
 (function(){
   'use strict';
-  var APP_VERSION='16';
+  var APP_VERSION='17';
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
   try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
   var LOC=LANG==='en'?'en-GB':LOC;
   var EN={
+"Дні тренувань": "Workout days",
+"Додати в це тренування": "Add to this workout",
+"Збережено. Записую в таблицю…": "Saved. Writing to the sheet…",
+"Записано у вкладку «Програма».": "Written to the “Програма” tab.",
+"Збережено на телефоні. У таблицю запишеться, коли оновите скрипт або з’явиться мережа.": "Saved on this phone. It will be written to the sheet once you update the script or get back online.",
 "Назад": "Back",
 "Вправи": "Exercises",
 "Пошук вправи": "Search exercises",
@@ -464,6 +469,26 @@
   try{sessions=JSON.parse(lsGet(LS)||'{}')||{}}catch(e){sessions={}}
   // Власні вправи: живуть в EX поряд зі стандартними
   try{custom=JSON.parse(lsGet(LSL)||'{}')||{}}catch(e){custom={}}
+  // Дні вправи, змінені в апці: діють одразу, у таблицю записуються, щойно є зв’язок
+  var LSD='gym.exdays.v1',exDays={};
+  try{exDays=JSON.parse(lsGet(LSD)||'{}')||{}}catch(e){exDays={}}
+  function saveExDays(){lsSet(LSD,JSON.stringify(exDays))}
+  function setDays(id,keys){
+    var d=EX[id];if(!d)return;
+    d.days=keys.slice();
+    DAYKEYS.forEach(function(k){
+      var ids=DAYS[k].ids,i=ids.indexOf(id),want=keys.indexOf(k)>=0;
+      if(want&&i<0)ids.push(id);else if(!want&&i>=0)ids.splice(i,1);
+    });
+  }
+  // зміна діє, поки її не записано, або поки програма з таблиці не новіша за неї
+  var progAt=0;
+  function applyExDays(){Object.keys(exDays).forEach(function(id){var o=exDays[id];if(EX[id]&&(o.pending||(o.at||0)>progAt))setDays(id,o.days)})}
+  function pushExDays(id){
+    var o=exDays[id];if(!o||!o.pending||!cfg.url)return Promise.resolve(false);
+    var nums=o.days.map(function(k){return DAYS[k]?String(DAYS[k].num):''}).filter(Boolean).join(', ');
+    return api('setExerciseDays',{id:id,days:nums}).then(function(){o.pending=false;saveExDays();return true},function(){return false});
+  }
   function mergeCustom(){
     Object.keys(custom).forEach(function(id){
       var d=custom[id];
@@ -480,9 +505,9 @@
   }
   // Програма з таблиці, збережена на телефоні для офлайну
   var LSP='gym.prog.v1';
-  try{var p0=JSON.parse(lsGet(LSP)||'null');if(p0&&p0.ex&&p0.ex.length)applyProgram(p0)}catch(e){}
+  try{var p0=JSON.parse(lsGet(LSP)||'null');if(p0&&p0.ex&&p0.ex.length){applyProgram(p0);progAt=p0.at||0}}catch(e){}
   function saveLib(){lsSet(LSL,JSON.stringify(custom))}
-  mergeCustom();
+  mergeCustom();applyExDays();
   function dayOf(k){return DAYS[k]||DAYS.X}
   function sIds(s){
     // порядок цього тренування (якщо його змінювали), інакше порядок дня
@@ -681,7 +706,8 @@
     var exs=Object.keys(custom).filter(function(id){var d=custom[id];return d.ready&&!d.synced});
     var list=Object.keys(sessions).map(function(k){return sessions[k]}).filter(function(s){return s.finished&&s.needSheet});
     var ords=Object.keys(dayOrd).filter(function(k){return dayOrd[k]&&dayOrd[k].pending});
-    if(!exs.length&&!list.length&&!ords.length)return Promise.resolve();
+    var exd=Object.keys(exDays).filter(function(id){return exDays[id].pending&&!(custom[id]&&!custom[id].synced)});
+    if(!exs.length&&!list.length&&!ords.length&&!exd.length)return Promise.resolve();
     syncing=true;
     var chain=Promise.resolve();
     exs.forEach(function(id){chain=chain.then(function(){
@@ -694,6 +720,7 @@
     })});
     list.forEach(function(s){chain=chain.then(function(){return backup(s)})});
     ords.forEach(function(k){chain=chain.then(function(){return pushOrder(k)})});
+    exd.forEach(function(id){chain=chain.then(function(){return pushExDays(id)})});
     var done=function(){syncing=false;if(syncAgain){syncAgain=false;syncPending()}else if(view==='home')renderHome()};
     return chain.then(done,done);
   }
@@ -722,7 +749,7 @@
       });
       var p={days:days,ex:canon(j.progHead,j.ex,PROG_HEAD),at:Date.now()};
       lsSet(LSP,JSON.stringify(p));
-      applyProgram(p);mergeCustom();
+      applyProgram(p);progAt=p.at;mergeCustom();applyExDays();
       if(view==='home')renderHome();
       return true;
     },function(){progLoading=null;return false});
@@ -1239,6 +1266,14 @@
     if(md)h+='<div class="mbox">'+md+'</div>';
     else h+='<p class="sync">'+(hasAnim?T('Схема руху. '):'')+T('Фото свого тренажера, GIF чи відео можна додати у вкладці «Програма», колонка «Медіа».</p>');
     h+='<a class="retry mlink" href="https://www.youtube.com/results?search_query='+encodeURIComponent(q)+T('" target="_blank" rel="noopener">Знайти відео на YouTube</a>');
+    // у які дні входить вправа
+    h+='<div class="sec pks">'+T('Дні тренувань')+'</div><div class="chips">';
+    DAYKEYS.forEach(function(k){
+      var on=(d.days||[]).indexOf(k)>=0;
+      h+='<button class="chip'+(on?' on':'')+'" style="--dc:'+DAYS[k].color+'" data-act="exday" data-ex="'+id+'" data-day="'+k+'" aria-pressed="'+on+'">'+esc(DAYS[k].n)+'</button>';
+    });
+    h+='</div><p class="pkerr" id="exdmsg" role="status"></p>';
+    if(cur&&view==='workout'&&!cur.ex[id])h+='<button class="cta" data-act="exadd" data-ex="'+id+'">'+T('Додати в це тренування')+'</button>';
     var hist=exHistory(id);
     if(hist.length){
       h+=T('<div class="sec pks">Останні результати</div><div class="hist">');
@@ -1362,6 +1397,27 @@
     else if(act==='csave')saveSettings();
     else if(act==='upd')updateApp();
     else if(act==='exlist')renderExList();
+    else if(act==='exday'){
+      var dk=b.getAttribute('data-day'),ed=EX[id];if(!ed)return;
+      var keys=(ed.days||[]).slice(),ix=keys.indexOf(dk);
+      if(ix>=0)keys.splice(ix,1);else keys.push(dk);
+      keys.sort(function(a,c){return DAYKEYS.indexOf(a)-DAYKEYS.indexOf(c)});
+      setDays(id,keys);
+      if(custom[id]){custom[id].days=keys.slice();saveLib()}
+      exDays[id]={days:keys,pending:true,at:Date.now()};saveExDays();
+      var keepScroll=pk.querySelector('.pkp')?pk.querySelector('.pkp').scrollTop:0;
+      openInfo(id);
+      var pp=pk.querySelector('.pkp');if(pp)pp.scrollTop=keepScroll;
+      var msg=document.getElementById('exdmsg');
+      if(msg){msg.className='pkerr';msg.textContent=T('Збережено. Записую в таблицю…')}
+      (custom[id]&&!custom[id].synced?Promise.resolve(false):pushExDays(id)).then(function(ok){
+        var m=document.getElementById('exdmsg');if(!m)return;
+        m.className='pkerr okc';
+        m.textContent=ok?T('Записано у вкладку «Програма».'):T('Збережено на телефоні. У таблицю запишеться, коли оновите скрипт або з’явиться мережа.');
+      });
+      if(view==='exlist'){var y0=window.scrollY;renderExList();window.scrollTo(0,y0)}
+    }
+    else if(act==='exadd'){closePicker();addEx(id)}
     else if(act==='lang'){try{localStorage.setItem('gym.lang.v1',b.getAttribute('data-l'))}catch(e){}location.reload()}
     else if(act==='info')openInfo(id);
     else if(act==='later'){
