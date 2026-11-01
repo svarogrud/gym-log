@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  var APP_VERSION='25';
+  var APP_VERSION='26';
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
   try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
@@ -463,13 +463,19 @@
     fixed=fixDates(raw);
     var now=Date.now(),used={},skippedCells=0;
     for(var c2=1;c2<cols;c2++){
-      var ex={},votes={};
+      var ex={},votes={},sk={};
       for(var r2=1;r2<values.length;r2++){
         var id2=rowIds[r2];if(!id2||!EX[id2])continue;
         var cell=values[r2]&&values[r2][c2];
         if(cell==null||String(cell).trim()==='')continue;
         var col=colors&&colors[r2]&&colors[r2][c2];
-        if(colors&&!isDone(col)){skippedCells++;continue}
+        if(colors&&!isDone(col)){
+          skippedCells++;
+          // незафарбована клітинка = пропущена вправа: запам'ятовуємо план з клітинки як невиконані підходи
+          var ps=parseCell(id2,cell);
+          if(ps)sk[id2]=ps.map(function(x){var y={};Object.keys(x).forEach(function(k){y[k]=x[k]});y.done=false;return y});
+          continue;
+        }
         var dc=dayOfColor(col);if(dc)votes[dc]=(votes[dc]||0)+1;
         var p=parseCell(id2,cell);
         if(p)ex[id2]=p;else bad++;
@@ -478,7 +484,10 @@
       var f=fixed[c2-1],day=null,vb=0;
       DAYKEYS.forEach(function(k){if((votes[k]||0)>vb){vb=votes[k];day=k}});
       if(!day)day=classify(ex);
-      var dids=DAYS[day].ids,extra=Object.keys(ex).filter(function(id){return dids.indexOf(id)<0});
+      var dids=DAYS[day].ids;
+      // пропущені вправи цього дня лишаються в тренуванні як «Пропущено»; чужі білі клітинки (скопійовані зі стовпця іншого дня) ігноруємо
+      Object.keys(sk).forEach(function(id){if(!ex[id]&&dids.indexOf(id)>=0)ex[id]=sk[id]});
+      var extra=Object.keys(ex).filter(function(id){return dids.indexOf(id)<0});
       var key=f.iso+'_'+day,n2=2;
       while(used[key])key=f.iso+'_'+day+'_'+(n2++);
       used[key]=1;
