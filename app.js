@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  var APP_VERSION='18';
+  var APP_VERSION='19';
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
   try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
@@ -229,13 +229,13 @@
     return String(t==null?'':t).split('*').map(function(x){return parseFloat(String(x).replace(',','.').replace(/[^\d.]/g,''))}).filter(function(x){return !isNaN(x)});
   }
   function exFromRow(r){
-    var j=String(r[0]||'').trim(),n=String(r[1]||'').trim()||j;
+    var j=String(r[0]||'').trim(),n=String(r[1]||'').trim()||j,enName=String(r[10]||'').trim();
     if(LANG==='en'){var en=String(r[10]||'').trim();if(en)n=en;else if(/[a-z]/i.test(j.split('/')[0])){n=j.split('/')[0].replace(/\(.*?\)/g,'').trim();n=n.charAt(0).toUpperCase()+n.slice(1)}}
     var type=normName(r[2]),note=String(r[7]||'').trim(),id=String(r[8]||'').trim();
     if(!j&&!n)return null;
     if(!id)id='n:'+normName(j||n);
     var days=String(r[3]||'').split(/[^\d]+/).map(dayKey).filter(Boolean);
-    var d={n:n,j:j||n,days:days,media:String(r[9]||'').trim()};
+    var d={n:n,j:j||n,days:days,media:String(r[9]||'').trim(),en:enName};
     if(type.indexOf('кард')===0||type==='cardio'){
       // кардіо: у «Примітці» план як у журналі (15*10*7 або 20 min), у «Повторах» — назви полів через «;»
       d.t='cardio';d.sh=note||'';d.d=note||'';
@@ -1249,6 +1249,25 @@
       if(!reduce)animRaf=requestAnimationFrame(step);
     })(t0);
   }
+  // Запити для YouTube: точна назва тренажера англійською дає релевантні відео
+  var YTQ={ell:'elliptical trainer how to use',bike:'stationary bike proper form',lowb:'seated back extension machine how to use',
+    bext:'45 degree back extension hyperextension proper form',abs:'floor crunches proper form',crunch:'ab crunch machine how to use',
+    chin:'assisted pull up machine how to use',dip:'assisted dip machine how to use',shp:'converging shoulder press machine how to use',
+    srow:'seated cable row proper form',rot:'rotary torso machine how to use',rear:'rear delt fly machine how to use',
+    lat:'lateral raise machine how to use',drow:'diverging seated row machine how to use',pull:'lat pulldown proper form',
+    bench:'barbell bench press proper form',bbic:'ez bar curl proper form',incl:'incline barbell bench press proper form',
+    dbic:'dumbbell bicep curl proper form',tri:'cable triceps pressdown proper form',tri2:'overhead dumbbell triceps extension proper form',
+    lrow:'low row machine how to use',lext:'leg extension machine how to use',lcurl:'seated leg curl machine how to use',
+    add:'hip adductor machine how to use',abd:'hip abductor machine how to use',glute:'glute kickback machine how to use',
+    hack:'hack squat machine proper form',calfs:'standing calf raise machine proper form',calft:'seated calf raise machine proper form',
+    plc:'lying leg curl machine how to use',lpress:'leg press machine proper form'};
+  function ytQuery(id){
+    if(YTQ[id])return YTQ[id];
+    var d=EX[id],base=d.en||'';
+    if(!base){var lat=String(d.j||'').split('/')[0].replace(/\(.*?\)/g,'').trim();if(/[a-z]{3}/i.test(lat))base=lat}
+    if(!base)base=d.n;
+    return base+(/[a-z]/i.test(base)?(d.t==='cardio'?' how to use':' proper form'):' техніка виконання');
+  }
   function exHistory(id){
     return Object.keys(sessions).map(function(k){return sessions[k]})
       .filter(function(s){return s.finished&&s.ex&&s.ex[id]&&anyDone(s.ex[id])})
@@ -1256,7 +1275,7 @@
   }
   function openInfo(id){
     var d=EX[id];if(!d)return;
-    var q=(String(d.j||d.n).split('/')[0].replace(/\(.*?\)/g,'').trim()||d.n)+' exercise';
+    var q=ytQuery(id);
     var h='<div class="pkp" role="dialog" aria-label="'+esc(d.n)+'"><div class="pkh"><h2>'+esc(d.n)+T('</h2><button class="back" data-act="pclose" aria-label="Закрити">×</button></div>');
     var sub=[];
     if(d.j&&normName(d.j)!==normName(d.n))sub.push(d.j);
