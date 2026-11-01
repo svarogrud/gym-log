@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  var APP_VERSION='8 · 1 лист. 2026';
+  var APP_VERSION='9 · 1 лист. 2026';
   /* ---------- програма тренувань ----------
      Джерело правди — вкладки «Програма» і «Дні» в таблиці. Нижче — стартова програма,
      з якої ці вкладки створюються, і яку апка використовує, доки таблицю не підключено. */
@@ -9,8 +9,8 @@
   var BUILTIN={
     days:[
       ['1','Ноги','ноги, підтягування, бруси','#ff9900','ноги'],
-      ['2','Плечі та спина','плечі, спина, підтягування','#4a86e8','спина'],
-      ['3','Груди та руки','груди, біцепс, трицепс','#9900ff','груди']
+      ['2','Плечі та спина','плечі, спина, підтягування','#4a86e8','плечі, спина'],
+      ['3','Груди та руки','груди, біцепс, трицепс','#9900ff','груди, руки']
     ],
     ex:[
       ['elipse','Еліпс','кардіо','1, 2, 3','','','','15*10*7','ell'],
@@ -104,26 +104,36 @@
     Object.keys(DAYS).forEach(function(k){DAYHEX[k]=DAYS[k].color;DAYCOL[k]=hexRgb(DAYS[k].color)});
   }
   applyProgram(null);
-  // Іконки днів (24×24, лінійні). У вкладці «Дні» в колонці «Іконка» пишіть назву або вставте емодзі
-  var ICONS={
-  // присідання зі штангою
-  'ноги':'<circle cx="9.5" cy="3.6" r="1.9"/><path d="M3.5 7.5h14"/><path d="M5 6v3M16 6v3"/><path d="M9.5 7.5l1.6 6.2 5.4 1.1-1.6 5.7h3"/><path d="M8 7.5l-1 3"/>',
-  // підтягування
-  'спина':'<path d="M3 3.5h18"/><path d="M8 3.5l1.2 5.5h5.6L16 3.5"/><circle cx="12" cy="6.7" r="1.8"/><path d="M12 9v6.5"/><path d="M12 15.5l-2.2 5M12 15.5l2.2 5"/>',
-  // жим лежачи
-  'груди':'<path d="M3 16.5h15"/><path d="M5.5 16.5v4M15.5 16.5v4"/><circle cx="4.6" cy="12.8" r="1.8"/><path d="M6.6 13.6h9.4l2.5 3"/><path d="M10 13.6V7"/><path d="M4.5 7h11"/><path d="M6 5.3v3.4M14 5.3v3.4"/>',
-  'штанга':'<path d="M2 12h20"/><rect x="4.5" y="6.5" width="3" height="11" rx="1"/><rect x="16.5" y="6.5" width="3" height="11" rx="1"/>',
-  'гантель':'<path d="M8 12h8"/><rect x="3" y="8" width="5" height="8" rx="1.5"/><rect x="16" y="8" width="5" height="8" rx="1.5"/>',
-  'гиря':'<path d="M8.5 9.3V7.5a3.5 3.5 0 0 1 7 0v1.8"/><path d="M6.5 15a5.5 5.5 0 1 1 11 0c0 1.9-.9 3.6-2.3 4.6H8.8A5.6 5.6 0 0 1 6.5 15z"/>',
-  'кардіо':'<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/><path d="M3.5 12.5h4l1.5-2.5 2 5 1.5-2.5h8"/>'
+  // Значок дня — силует тіла (вид спереду), зони дня підсвічені його кольором.
+  // У вкладці «Дні», колонка «Іконка»: зони через кому (ноги, плечі, спина, груди, руки, прес),
+  // або назва предмета (штанга, гантель, гиря, кардіо), або емодзі.
+  var BODY={
+    head:'<circle cx="12" cy="3.4" r="2.5"/>',
+    sh:'<circle cx="6.6" cy="8.2" r="1.9"/><circle cx="17.4" cy="8.2" r="1.9"/>',
+    chest:'<path d="M7.6 7.2h8.8l.6 6.3H7z"/>',
+    abs:'<rect x="8.1" y="14.2" width="7.8" height="4.4" rx="1"/>',
+    arms:'<rect x="4.2" y="10" width="2.5" height="5.2" rx="1.25"/><rect x="17.3" y="10" width="2.5" height="5.2" rx="1.25"/><rect x="3.6" y="15.8" width="2.3" height="5" rx="1.15"/><rect x="18.1" y="15.8" width="2.3" height="5" rx="1.15"/>',
+    legs:'<rect x="8.2" y="19.3" width="3.4" height="6.6" rx="1.5"/><rect x="12.4" y="19.3" width="3.4" height="6.6" rx="1.5"/><rect x="8.5" y="26.6" width="2.9" height="5" rx="1.3"/><rect x="12.6" y="26.6" width="2.9" height="5" rx="1.3"/>'
   };
-  var ICON_ALIAS={'присідання':'ноги','legs':'ноги','squat':'ноги','підтягування':'спина','back':'спина','pullup':'спина',
-    'жим':'груди','chest':'груди','bench':'груди','руки':'гантель','рука':'гантель','біцепс':'гантель','dumbbell':'гантель',
-    'barbell':'штанга','kettlebell':'гиря','cardio':'кардіо','серце':'кардіо'};
-  function iconSvg(name,sw){
-    var k=normName(name);k=ICON_ALIAS[k]||k;
-    if(!ICONS[k])return '';
-    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(sw||1.9)+'" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+ICONS[k]+'</svg>';
+  var ZONES={'ноги':'legs','ніг':'legs','legs':'legs','плечі':'sh','плечей':'sh','shoulders':'sh','спина':'chest','back':'chest',
+    'груди':'chest','chest':'chest','руки':'arms','рука':'arms','біцепс':'arms','трицепс':'arms','arms':'arms','прес':'abs','abs':'abs','core':'abs'};
+  var GEAR={
+    'штанга':'<path d="M2 12h20"/><rect x="4.5" y="6.5" width="3" height="11" rx="1"/><rect x="16.5" y="6.5" width="3" height="11" rx="1"/>',
+    'гантель':'<path d="M8 12h8"/><rect x="3" y="8" width="5" height="8" rx="1.5"/><rect x="16" y="8" width="5" height="8" rx="1.5"/>',
+    'гиря':'<path d="M8.5 9.3V7.5a3.5 3.5 0 0 1 7 0v1.8"/><path d="M6.5 15a5.5 5.5 0 1 1 11 0c0 1.9-.9 3.6-2.3 4.6H8.8A5.6 5.6 0 0 1 6.5 15z"/>',
+    'кардіо':'<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/><path d="M3.5 12.5h4l1.5-2.5 2 5 1.5-2.5h8"/>'
+  };
+  function iconSvg(name){
+    var words=String(name||'').split(/[,;\s]+/).map(normName).filter(Boolean);
+    if(!words.length)return '';
+    var zones=words.map(function(w){return ZONES[w]});
+    if(zones.every(Boolean)){
+      return '<svg class="body" viewBox="0 0 24 32" aria-hidden="true">'+Object.keys(BODY).map(function(k){
+        // незадіяні зони — нейтральні сірі, щоб силует читався на будь-якому фоні
+        return zones.indexOf(k)>=0?'<g fill="currentColor">'+BODY[k]+'</g>':'<g fill="var(--muted)" opacity=".4">'+BODY[k]+'</g>'}).join('')+'</svg>';
+    }
+    if(words.length===1&&GEAR[words[0]])return '<svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+GEAR[words[0]]+'</svg>';
+    return '';
   }
   // Значок дня: лінійна іконка кольору дня, емодзі або номер
   function badge(d){
