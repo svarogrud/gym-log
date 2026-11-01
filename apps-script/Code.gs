@@ -1,8 +1,8 @@
 /**
- * Gym Log ↔ Google Sheets.  ВЕРСІЯ СКРИПТА: 4
+ * Gym Log ↔ Google Sheets.  ВЕРСІЯ СКРИПТА: 5
  *
- * Після вставки перевірте: ⚙ в апці → «Зберегти й перевірити» покаже «скрипт v4»,
- * а адреса веб-застосунку в браузері — {"ok":true,"app":"gym-log","version":4}.
+ * Після вставки перевірте: ⚙ в апці → «Зберегти й перевірити» покаже «скрипт v5»,
+ * а адреса веб-застосунку в браузері — {"ok":true,"app":"gym-log","version":5}.
  *
  * Вставте цей файл у свою таблицю: Розширення → Apps Script.
  * Замініть TOKEN на власний довгий ключ і опублікуйте як веб-застосунок
@@ -11,7 +11,7 @@
  *
  * @OnlyCurrentDoc  скрипт отримує доступ лише до цієї таблиці, а не до всіх ваших файлів
  */
-const SCRIPT_VERSION = 4;     // збільшується з кожною зміною цього файлу
+const SCRIPT_VERSION = 5;     // збільшується з кожною зміною цього файлу
 const TOKEN = 'ЗАМІНІТЬ-НА-СВІЙ-КЛЮЧ';
 const SHEET_NAME = 'Sheet1';     // журнал: вправи в рядках, тренування в стовпцях
 const PROGRAM_NAME = 'Програма'; // вправи: назва в журналі, назва в апці, тип, дні, підходи, повтори, вага, примітка, ID, медіа
@@ -89,21 +89,27 @@ function write(sh, req) {
   const taken = req.taken || [];
   let col = null;
   let reused = false;
+  let conflict = false;
+  // Хто записав стовпець: примітка в заголовку «gym-log <пристрій> <тренування>».
+  // Стовпець іншого пристрою не перезаписуємо (крім явного редагування імпортованого тренування — fixedCol).
+  const owner = c => { const m = /^gym-log (\S+) /.exec(sh.getRange(1, c).getNote() || ''); return m ? m[1] : ''; };
+  const foreign = c => !!req.dev && c <= lastCol && !!owner(c) && owner(c) !== req.dev;
 
   if (req.col) {
     const h = header[req.col - 1];
     const empty = h === undefined || h === '';
     if (req.fixedCol || empty || sameDate(h, req.iso)) {
-      col = req.col;
-      reused = !empty;
+      if (!req.fixedCol && !empty && foreign(req.col)) conflict = true;
+      else { col = req.col; reused = !empty; }
     }
   }
   if (!col && lastCol > 1 && sameDate(header[lastCol - 1], req.iso) && taken.indexOf(lastCol) < 0) {
-    col = lastCol;
-    reused = true;
+    if (foreign(lastCol)) conflict = true;
+    else { col = lastCol; reused = true; }
   }
   if (!col) col = lastCol + 1;
   if (!reused) sh.getRange(1, col).setNumberFormat('@').setValue(req.date);
+  if (req.dev && req.key) sh.getRange(1, col).setNote('gym-log ' + req.dev + ' ' + req.key);
 
   // Назви вправ у колонці A: для нових вправ шукаємо рядок за назвою або додаємо внизу
   const lastRow = Math.max(sh.getLastRow(), 1);
@@ -130,7 +136,7 @@ function write(sh, req) {
     cell.setBackground(it.done ? (req.color || '#cccccc') : '#ffffff');
   });
 
-  return { ok: true, col: col, reused: reused, rows: rows };
+  return { ok: true, col: col, reused: reused, conflict: conflict, rows: rows };
 }
 
 /** Читає вкладки «Програма» і «Дні». Рядкам без ID дає ID, щоб записи в апці не губилися. */

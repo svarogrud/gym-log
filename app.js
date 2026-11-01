@@ -1,12 +1,15 @@
 (function(){
   'use strict';
-  var APP_VERSION='33';
-  var NEED_SCRIPT=4; // має збігатися з SCRIPT_VERSION у apps-script/Code.gs
+  var APP_VERSION='34';
+  var NEED_SCRIPT=5; // має збігатися з SCRIPT_VERSION у apps-script/Code.gs
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
   try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
   var LOC=LANG==='en'?'en-GB':'uk-UA';
   var EN={
+"З таблиці підтягнуто нових чи змінених тренувань: ": "New or changed workouts pulled from the sheet: ",
+"У цей день інший пристрій уже записав тренування — щоб не затерти його, записано в новий стовпець ": "Another device already saved a workout for this day — to avoid overwriting it, saved to a new column ",
+"Інший пристрій уже записав цей день — записано в окремий стовпець ": "Another device already saved this day — saved to a separate column ",
 "Рекомендація під ваш профіль: ті самі 3 дні по черзі, ~75 хв кожен. Лише для інформації — ваша програма в «Тренуванні» не змінюється. Натисніть на вправу, щоб побачити техніку й ваги.": "Recommendation for your profile: the same 3 days in rotation, ~75 min each. For information only — your program under Workout doesn’t change. Tap an exercise for technique and weights. (Notes are in Ukrainian.)",
 "Чому так": "Why",
 "День 1 · Ноги + тяга": "Day 1 · Legs + pull",
@@ -815,6 +818,9 @@
     return T('Помилка таблиці: ')+((e&&e.message)||c);
   }
   // Виконані вправи фарбуємо кольором дня, пропущені лишаємо білими з планом
+  // ID цього пристрою: таблиця пам'ятає, який пристрій записав стовпець, щоб інший його не затер
+  var DEV=lsGet('gym.dev.v1');
+  if(!DEV){DEV='d'+Math.random().toString(36).slice(2,10);lsSet('gym.dev.v1',DEV)}
   function payloadFor(s){
     var items=[];
     Object.keys(s.ex).forEach(function(id){
@@ -823,7 +829,7 @@
     });
     var taken=[];
     Object.keys(sessions).forEach(function(q){var o=sessions[q];if(o.key!==s.key&&o.sheetCol!=null)taken.push(o.sheetCol+1)});
-    return {date:sheetDate(s.date),iso:s.date,col:s.sheetCol==null?null:s.sheetCol+1,fixedCol:!!s.imported,taken:taken,
+    return {key:s.key,dev:DEV,date:sheetDate(s.date),iso:s.date,col:s.sheetCol==null?null:s.sheetCol+1,fixedCol:!!s.imported,taken:taken,
       color:DAYHEX[s.day]||DAYHEX.X,items:items};
   }
   function bkInner(s){
@@ -850,7 +856,9 @@
       s.sheetAt=Date.now();s.needSheet=false;touch(s);
       var L=colLetter(s.sheetCol);
       delete bk[k];
-      setBk(k,'ok',j.reused?T('Оновлено стовпець ')+L+T(' у таблиці.'):T('Записано в таблицю, стовпець ')+L+'.');
+      setBk(k,'ok',j.conflict?T('У цей день інший пристрій уже записав тренування — щоб не затерти його, записано в новий стовпець ')+L+'.':
+        j.reused?T('Оновлено стовпець ')+L+T(' у таблиці.'):T('Записано в таблицю, стовпець ')+L+'.');
+      if(j.conflict)toast(T('Інший пристрій уже записав цей день — записано в окремий стовпець ')+L);
       return true;
     },function(e){
       setBk(k,(e.code==='offline'||e.code==='no_config')?'wait':'err',errText(e));
@@ -935,12 +943,25 @@
     Object.keys(EX).forEach(function(id){if(!hit&&EX[id].custom&&norm(EX[id].n)===t)hit=id});
     return hit;
   }
-  function importHistory(){
-    if(impState&&impState.state==='busy')return;
-    setImp('busy',T('Читаю таблицю…'));
-    loadProgram().then(function(){return api('read')}).then(function(j){
+  // quiet — автоматично при відкритті апки: без «Читаю таблицю…», помилки мовчки, повідомлення лише про нові тренування
+  var impBusy=false,impLast=0;
+  function autoImport(){
+    if(!cfg.url||navigator.onLine===false||impBusy||(impState&&impState.state==='busy'))return Promise.resolve();
+    // посеред тренування чи з відкритим вікном не чіпаємо — щоб не загубити зміни
+    if(view==='workout'||!pk.hidden||Date.now()-impLast<60000)return Promise.resolve();
+    impLast=Date.now();
+    return importHistory(true);
+  }
+  function importHistory(quiet){
+    if(impState&&impState.state==='busy')return Promise.resolve();
+    impBusy=true;
+    if(!quiet)setImp('busy',T('Читаю таблицю…'));
+    var before={};Object.keys(sessions).forEach(function(k){var s=sessions[k];before[k]=s.imported?(s.sheetCol+'|'+JSON.stringify(s.ex)):1});
+    return (quiet?Promise.resolve():loadProgram()).then(function(){return api('read')}).then(function(j){
+        impBusy=false;
+        if(quiet&&(view==='workout'||!pk.hidden))return;
         var g=gridFromApi(j);
-        if(!g.values.length){setImp('err',T('Таблиця порожня або недоступна.'));return}
+        if(!g.values.length){if(!quiet)setImp('err',T('Таблиця порожня або недоступна.'));return}
         var r=buildImported(g.values,nameToId,g.colors);
         // власні тренування з апки мають перевагу над тим самим днем з таблиці
         var mine={};
@@ -965,9 +986,11 @@
         if(fixed)msg+=T(' Виправлено дат: ')+fixed+T(' (позначені ≈, якщо дата приблизна).');
         if(skipped)msg+=T(' Пропущено ')+skipped+T(', бо вони вже є в апці.');
         if(r.bad)msg+=T(' Не вдалося розібрати клітинок: ')+r.bad+'.';
-        impState={state:'ok',msg:msg};
-        if(view==='home')renderHome();
-    }).catch(function(e){setImp('err',errText(e))});
+        var fresh=Object.keys(sessions).filter(function(k){var s=sessions[k];return s.imported&&before[k]!==(s.sheetCol+'|'+JSON.stringify(s.ex))}).length;
+        if(!quiet)impState={state:'ok',msg:msg};
+        else if(fresh)toast(T('З таблиці підтягнуто нових чи змінених тренувань: ')+fresh);
+        if(view==='home'&&(!quiet||fresh))renderHome();
+    }).catch(function(e){impBusy=false;if(!quiet)setImp('err',errText(e))});
   }
 
   /* ---------- calendar ---------- */
@@ -2335,11 +2358,11 @@
     var t=e.changedTouches[0],dx=t.clientX-tx,dy=t.clientY-ty;tx=null;
     if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5)calShift(dx<0?1:-1);
   },{passive:true});
-  window.addEventListener('online',function(){loadProgram().then(syncPending)});
-  document.addEventListener('visibilitychange',function(){if(!document.hidden){autoFinish();syncPending()}});
+  window.addEventListener('online',function(){loadProgram().then(syncPending).then(autoImport)});
+  document.addEventListener('visibilitychange',function(){if(!document.hidden){autoFinish();syncPending().then(autoImport)}});
   Object.keys(sessions).forEach(function(k){var s=sessions[k];if(s.editing){delete s.editing;if(s._chg){delete s._chg;s.needSheet=true}}});
   autoFinish();
-  loadProgram().then(syncPending).then(loadProfile).then(pushProfile).then(checkScript);
+  loadProgram().then(syncPending).then(autoImport).then(loadProfile).then(pushProfile).then(checkScript);
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}catch(e){}
   if('serviceWorker' in navigator){
     var hadCtl=!!navigator.serviceWorker.controller;
