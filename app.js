@@ -252,6 +252,8 @@
       // вже є у вкладці «Програма» → далі береться звідти
       if(d.synced&&(EX[id]||NAME2ID[normName(d.j)])){delete custom[id];return}
       if(!EX[id]){EX[id]=d;NAME2ID[normName(d.j)]=id}
+      // після завершення тренування вправа входить у план свого дня
+      if(d.ready)d.days.forEach(function(k){if(DAYS[k]&&DAYS[k].ids.indexOf(id)<0)DAYS[k].ids.push(id)});
     });
     saveLib();
   }
@@ -424,7 +426,8 @@
       var d=custom[id];if(!d)return;
       var reps=d.s.map(function(x){return x[0]}),ws=d.s.map(function(x){return x[1]});
       var same=function(a){return a.every(function(v){return v===a[0]})};
-      return api('addExercise',{row:[d.j,d.n,'сила','',String(d.s.length),same(reps)?String(reps[0]):reps.join('; '),same(ws)?String(ws[0]):ws.join('; '),'',id]})
+      var dnums=(d.days||[]).map(function(k){return DAYS[k]?String(DAYS[k].num):''}).filter(Boolean).join(', ');
+      return api('addExercise',{row:[d.j,d.n,'сила',dnums,String(d.s.length),same(reps)?String(reps[0]):reps.join('; '),same(ws)?String(ws[0]):ws.join('; '),'',id]})
         .then(function(){d.synced=true;saveLib()},function(){});
     })});
     list.forEach(function(s){chain=chain.then(function(){return backup(s)})});
@@ -621,7 +624,7 @@
     return {base:base,mine:mine};
   }
   function pkRow(id){
-    var d=EX[id],sub=d.custom?(d.s.length+'×'+d.s[0][0]+(d.s[0][1]?' · '+fw(d.s[0][1])+' кг':'')+(d.ready?'':' · з’явиться в усіх після завершення')):(dayNamesFor(id).join(', ')||'без дня в програмі');
+    var d=EX[id],sub=d.custom?(d.s.length+'×'+d.s[0][0]+(d.s[0][1]?' · '+fw(d.s[0][1])+' кг':'')+(d.ready?'':(d.days&&d.days.length&&DAYS[d.days[0]]?' · після завершення стане частиною дня «'+DAYS[d.days[0]].n+'»':' · з’явиться в списку після завершення'))):(dayNamesFor(id).join(', ')||'без дня в програмі');
     return '<button class="pkr" data-act="ppick" data-ex="'+id+'" data-n="'+esc(norm(d.n+' '+(d.tag||'')))+'"><span>'+esc(d.n)+'</span><small>'+esc(sub)+'</small></button>';
   }
   function openPicker(){
@@ -640,7 +643,7 @@
        '<label for="nw">Вага, кг<input class="in" id="nw" type="text" inputmode="decimal" value="0"></label></div>'+
        '<p class="pkerr" id="pkerr" role="alert"></p>'+
        '<button class="cta" type="button" data-act="pnew">Створити й додати</button>'+
-       '<p class="sync">У списку для всіх тренувань вправа з’явиться, коли ви завершите це. У таблиці для неї додасться окремий рядок.</p></div></div>';
+       '<p class="sync">'+(cur.day!=='X'&&DAYS[cur.day]?'Коли ви завершите тренування, вправа стане частиною дня «'+esc(DAYS[cur.day].n)+'» і з’явиться у вкладці «Програма».':'Коли ви завершите тренування, вправа з’явиться у вкладці «Програма» (без дня).')+' У журналі для неї додасться окремий рядок.</p></div></div>';
     pk.innerHTML=h;pk.hidden=false;
   }
   function closePicker(){pk.hidden=true;pk.innerHTML=''}
@@ -697,7 +700,8 @@
     var clash=Object.keys(EX).some(function(id){return norm(EX[id].n)===norm(nm)});
     if(clash){if(err)err.textContent='Вправа з такою назвою вже є. Знайдіть її у вкладці «З наявних».';return}
     var id='x'+Date.now().toString(36);
-    var d={n:nm,j:nm,days:[],s:S(n,r,w),custom:1,from:cur.key,ready:false};
+    // нова вправа належить дню, в якому її створили
+    var d={n:nm,j:nm,days:(DAYS[cur.day]&&cur.day!=='X')?[cur.day]:[],s:S(n,r,w),custom:1,from:cur.key,ready:false};
     custom[id]=d;EX[id]=d;touchLib(id);
     addEx(id);closePicker();
   }
@@ -813,6 +817,7 @@
       var fs=cur;
       // нові вправи, створені в цьому тренуванні, стають доступними для всіх тренувань
       (fs.extra||[]).forEach(function(xid){var xd=custom[xid];if(xd&&xd.from===fs.key&&!xd.ready){xd.ready=true;touchLib(xid)}});
+      mergeCustom();
       fs.finished=fs.finished||Date.now();fs.needSheet=true;touch(fs);hideRest();
       bkFocus=fs.key;renderHome();sendToSheet(fs);
     }else if(act==='bk'){
