@@ -1,5 +1,8 @@
 /**
- * Gym Log ↔ Google Sheets.
+ * Gym Log ↔ Google Sheets.  ВЕРСІЯ СКРИПТА: 3
+ *
+ * Після вставки перевірте: ⚙ в апці → «Зберегти й перевірити» покаже «скрипт v3»,
+ * а адреса веб-застосунку в браузері — {"ok":true,"app":"gym-log","version":3}.
  *
  * Вставте цей файл у свою таблицю: Розширення → Apps Script.
  * Замініть TOKEN на власний довгий ключ і опублікуйте як веб-застосунок
@@ -8,6 +11,7 @@
  *
  * @OnlyCurrentDoc  скрипт отримує доступ лише до цієї таблиці, а не до всіх ваших файлів
  */
+const SCRIPT_VERSION = 3;     // збільшується з кожною зміною цього файлу
 const TOKEN = 'ЗАМІНІТЬ-НА-СВІЙ-КЛЮЧ';
 const SHEET_NAME = 'Sheet1';     // журнал: вправи в рядках, тренування в стовпцях
 const PROGRAM_NAME = 'Програма'; // вправи: назва в журналі, назва в апці, тип, дні, підходи, повтори, вага, примітка, ID, медіа
@@ -15,7 +19,7 @@ const DAYS_NAME = 'Дні';         // дні (порядок рядків = п�
 
 /** Відкрийте адресу веб-застосунку в браузері: має з’явитися {"ok":true,...}. */
 function doGet() {
-  return json({ ok: true, app: 'gym-log' });
+  return json({ ok: true, app: 'gym-log', version: SCRIPT_VERSION });
 }
 
 function doPost(e) {
@@ -38,7 +42,7 @@ function doPost(e) {
 
     switch (req.action) {
       case 'ping':
-        return json({ ok: true, title: ss.getName() });
+        return json({ ok: true, title: ss.getName(), version: SCRIPT_VERSION });
       case 'read': {
         // Значення так, як їх видно в таблиці, і колір заливки кожної клітинки
         const r = sh.getDataRange();

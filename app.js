@@ -1,11 +1,16 @@
 (function(){
   'use strict';
-  var APP_VERSION='28';
+  var APP_VERSION='29';
+  var NEED_SCRIPT=3; // має збігатися з SCRIPT_VERSION у apps-script/Code.gs
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
   try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
   var LOC=LANG==='en'?'en-GB':'uk-UA';
   var EN={
+"скрипт v": "script v",
+"Скрипт у таблиці застарів": "The script in the sheet is outdated",
+"потрібна v": "needed v",
+"Вставте новий Code.gs і зробіть Deploy → Manage deployments → New version.": "Paste the new Code.gs and do Deploy → Manage deployments → New version.",
 "Схожі вправи": "Similar exercises",
 "У тому самому дні вже є вправи на ці м’язи": "The same day already has exercises for these muscles",
 "Це нормально, якщо так задумано, але легко перевантажити ті самі м’язи.": "Fine if intended, but it’s easy to overload the same muscles.",
@@ -1269,6 +1274,13 @@
       '<button class="retry'+(LANG==='en'?' on':'')+'" type="button" data-act="lang" data-l="en">English</button></div></div></div>';
     pk.hidden=false;
   }
+  function old(j){return !(+j.version>=NEED_SCRIPT)}
+  function scriptNote(j){return T('скрипт v')+(j.version||'1–2')}
+  // Раз на запуск: якщо скрипт у таблиці старіший за потрібний, кажемо про це
+  function checkScript(){
+    if(!cfg||!cfg.url)return;
+    api('ping').then(function(j){if(old(j))toast(T('Скрипт у таблиці застарів')+' ('+scriptNote(j)+', '+T('потрібна v')+NEED_SCRIPT+')')},function(){});
+  }
   function saveSettings(){
     var u=String(document.getElementById('cu').value||'').trim(),t=String(document.getElementById('ct').value||'').trim(),m=document.getElementById('cerr');
     m.className='pkerr';
@@ -1278,9 +1290,11 @@
     m.textContent=T('Перевіряю…');
     api('ping').then(function(j){
       m.className='pkerr okc';
-      m.textContent=T('З’єднано з таблицею «')+(j.title||'')+T('». Завантажую програму…');
+      var sv=scriptNote(j);
+      m.textContent=T('З’єднано з таблицею «')+(j.title||'')+'» · '+sv+T('. Завантажую програму…');
       loadProgram().then(function(ok){
-        m.textContent=T('З’єднано з таблицею «')+(j.title||'')+'».'+(ok?T(' Програму завантажено з вкладки «Програма».'):'');
+        m.textContent=T('З’єднано з таблицею «')+(j.title||'')+'» · '+sv+'.'+(ok?T(' Програму завантажено з вкладки «Програма».'):'');
+        if(old(j)){m.className='pkerr';m.textContent+=' '+T('Скрипт у таблиці застарів')+' ('+T('потрібна v')+NEED_SCRIPT+'). '+T('Вставте новий Code.gs і зробіть Deploy → Manage deployments → New version.')}
         syncPending();
       });
     },function(e){m.textContent=errText(e)});
@@ -2184,7 +2198,7 @@
   document.addEventListener('visibilitychange',function(){if(!document.hidden){autoFinish();syncPending()}});
   Object.keys(sessions).forEach(function(k){var s=sessions[k];if(s.editing){delete s.editing;if(s._chg){delete s._chg;s.needSheet=true}}});
   autoFinish();
-  loadProgram().then(syncPending).then(loadProfile).then(pushProfile);
+  loadProgram().then(syncPending).then(loadProfile).then(pushProfile).then(checkScript);
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}catch(e){}
   if('serviceWorker' in navigator){
     var hadCtl=!!navigator.serviceWorker.controller;
