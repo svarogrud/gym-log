@@ -1,16 +1,16 @@
 (function(){
   'use strict';
-  var APP_VERSION='5 · 1 лист. 2026';
+  var APP_VERSION='6 · 1 лист. 2026';
   /* ---------- програма тренувань ----------
      Джерело правди — вкладки «Програма» і «Дні» в таблиці. Нижче — стартова програма,
      з якої ці вкладки створюються, і яку апка використовує, доки таблицю не підключено. */
   var PROG_HEAD=['Назва в журналі','Назва в апці','Тип','Дні','Підходи','Повтори','Вага','Примітка','ID'];
-  var DAYS_HEAD=['№','Назва','Опис','Колір'];
+  var DAYS_HEAD=['№','Назва','Опис','Колір','Іконка'];
   var BUILTIN={
     days:[
-      ['1','Ноги','ноги, підтягування, бруси','#ff9900'],
-      ['2','Плечі та спина','плечі, спина, підтягування','#4a86e8'],
-      ['3','Груди та руки','груди, біцепс, трицепс','#9900ff']
+      ['1','Ноги','ноги, підтягування, бруси','#ff9900','🦵'],
+      ['2','Плечі та спина','плечі, спина, підтягування','#4a86e8','🏋️'],
+      ['3','Груди та руки','груди, біцепс, трицепс','#9900ff','💪']
     ],
     ex:[
       ['elipse','Еліпс','кардіо','1, 2, 3','','','','15*10*7','ell'],
@@ -88,11 +88,10 @@
     dayRows.forEach(function(r){
       var k=dayKey(r[0]);if(!k||DAYS[k])return;
       var col=hexOk(r[3])?hexNorm(r[3]):'#cccccc';
-      DAYS[k]={n:String(r[1]||'День '+r[0]).trim(),num:parseInt(r[0],10),sub:String(r[2]||'').trim(),ids:[],color:col};
+      DAYS[k]={n:String(r[1]||'День '+r[0]).trim(),num:parseInt(r[0],10),sub:String(r[2]||'').trim(),ids:[],color:col,icon:String(r[4]||'').trim()};
       DAYKEYS.push(k);
     });
     if(!DAYKEYS.length&&dayRows!==BUILTIN.days)return applyProgram({days:BUILTIN.days,ex:exRows});
-    DAYKEYS.sort(function(a,b){return DAYS[a].num-DAYS[b].num});
     exRows.forEach(function(r){
       var e=exFromRow(r);if(!e||EX[e.id])return;
       EX[e.id]=e.d;NAME2ID[normName(e.d.j)]=e.id;
@@ -105,6 +104,14 @@
     Object.keys(DAYS).forEach(function(k){DAYHEX[k]=DAYS[k].color;DAYCOL[k]=hexRgb(DAYS[k].color)});
   }
   applyProgram(null);
+  // Значок дня: іконка з вкладки «Дні», а якщо її немає — номер
+  function badge(d){return d&&d.icon?'<span class="ico">'+esc(d.icon)+'</span>':(d?d.num:'')}
+  // Рядки вкладок → у фіксованому порядку колонок, за назвами заголовків (порядок колонок у таблиці може бути будь-який)
+  function canon(head,rows,want){
+    if(!head||!head.length)return rows;
+    var idx=want.map(function(w,i){var j=head.map(normName).indexOf(normName(w));return j});
+    return rows.map(function(r){return idx.map(function(j){return j>=0&&r[j]!=null?String(r[j]):''})});
+  }
 
   function isoOf(y,m,d){return y+'-'+('0'+m).slice(-2)+'-'+('0'+d).slice(-2)}
   function parseDate(raw){
@@ -452,7 +459,13 @@
     }).then(function(j){
       progLoading=null;
       if(!j||!j.ex||!j.ex.length)return false;
-      var p={days:j.days,ex:j.ex,at:Date.now()};
+      var days=canon(j.daysHead,j.days,DAYS_HEAD);
+      // старий скрипт не віддає колонку «Іконка» — беремо стандартну іконку за назвою дня
+      if(!j.daysHead)days=days.map(function(r){
+        var b=BUILTIN.days.filter(function(x){return normName(x[1])===normName(r[1])})[0];
+        return [r[0],r[1],r[2],r[3],b?b[4]:''];
+      });
+      var p={days:days,ex:canon(j.progHead,j.ex,PROG_HEAD),at:Date.now()};
       lsSet(LSP,JSON.stringify(p));
       applyProgram(p);mergeCustom();
       if(view==='home')renderHome();
@@ -543,7 +556,7 @@
       }else h+='<div class="'+cls+'">'+d+'</div>';
     }
     h+='</div><div class="calk">';
-    DAYKEYS.forEach(function(k){h+='<span><b style="background:'+DAYS[k].color+'"></b>'+esc(DAYS[k].n)+'</span>'});
+    DAYKEYS.forEach(function(k){h+='<span><b style="background:'+DAYS[k].color+'"></b>'+(DAYS[k].icon?esc(DAYS[k].icon)+' ':'')+esc(DAYS[k].n)+'</span>'});
     h+='</div>';
     return h;
   }
@@ -576,13 +589,13 @@
     if(!cfg.url)h+='<button class="resume" data-act="cfg"><div><b>Підключіть таблицю</b><div class="tag">Щоб підтягнути історію й зберігати резервну копію</div></div><span>Налаштувати</span></button>';
     if(bkFocus&&sessions[bkFocus])h+='<div id="bkbox" class="bkbox" data-key="'+bkFocus+'">'+bkInner(sessions[bkFocus])+'</div>';
     if(open){
-      h+='<button class="resume" data-act="open" data-key="'+open.key+'"><div><b>Тренування триває</b><div class="tag">День '+dayOf(open.day).num+' · '+dayOf(open.day).n+' · '+setsDone(open)+' з '+setsTotal(open)+' підходів</div></div><span>Продовжити</span></button>';
+      h+='<button class="resume" data-act="open" data-key="'+open.key+'"><div><b>Тренування триває</b><div class="tag">'+dayOf(open.day).n+' · '+setsDone(open)+' з '+setsTotal(open)+' підходів</div></div><span>Продовжити</span></button>';
     }
-    h+='<div class="hero"><div class="big">'+dd.num+'</div><div class="kick">Наступне за чергою</div><h2>'+dd.n+'</h2><div class="meta">'+dd.ids.length+' вправ · останнє '+fmtDate(lastDate(nd))+'</div><button class="cta" data-act="start" data-day="'+nd+'">Почати тренування</button></div>';
+    h+='<div class="hero"><div class="big">'+badge(dd)+'</div><div class="kick">Наступне за чергою</div><h2>'+dd.n+'</h2><div class="meta">'+dd.ids.length+' вправ · останнє '+fmtDate(lastDate(nd))+'</div><button class="cta" data-act="start" data-day="'+nd+'">Почати тренування</button></div>';
     h+='<div><div class="sec">Усі дні</div><div class="rows">';
     DAYKEYS.forEach(function(k){
       var d=DAYS[k],l=lastDate(k);
-      h+='<button class="row'+(k===nd?' next':'')+'" data-act="start" data-day="'+k+'"><div class="dn">'+d.num+'</div><div><div class="rn">'+d.n+'</div><div class="rs">'+d.sub+'</div></div><div class="rr">'+fmtDate(l)+'<br>'+ago(l)+'</div></button>';
+      h+='<button class="row'+(k===nd?' next':'')+'" data-act="start" data-day="'+k+'"><div class="dn">'+badge(d)+'</div><div><div class="rn">'+d.n+'</div><div class="rs">'+d.sub+'</div></div><div class="rr">'+fmtDate(l)+'<br>'+ago(l)+'</div></button>';
     });
     h+='</div></div>';
     h+='<div><div class="sec">Календар</div><div class="cal" id="cal">'+calHTML()+'</div></div>';
@@ -596,7 +609,7 @@
       var y=s.date.slice(0,4);
       if(lastY&&y!==lastY)h+='<div class="yr">'+y+'</div>';
       lastY=y;
-      h+='<button class="row" data-act="open" data-key="'+s.key+'"><div class="dn">'+DAYS[s.day].num+'</div><div><div class="rn">'+DAYS[s.day].n+'</div><div class="rs num">'+setsDone(s)+' підходів · '+volume(s).toLocaleString('uk-UA')+' кг'+(s.imported?'':s.sheetAt?' · в таблиці':'')+'</div></div><div class="rr">'+(s.dateFix==='est'?'≈ ':'')+fmtDate(s.date)+(y!==todayISO().slice(0,4)?'<br>'+y:'')+'</div></button>';
+      h+='<button class="row" data-act="open" data-key="'+s.key+'"><div class="dn">'+badge(DAYS[s.day])+'</div><div><div class="rn">'+DAYS[s.day].n+'</div><div class="rs num">'+setsDone(s)+' підходів · '+volume(s).toLocaleString('uk-UA')+' кг'+(s.imported?'':s.sheetAt?' · в таблиці':'')+'</div></div><div class="rr">'+(s.dateFix==='est'?'≈ ':'')+fmtDate(s.date)+(y!==todayISO().slice(0,4)?'<br>'+y:'')+'</div></button>';
     });
     h+='</div>';
     if(all.length>fin.length)h+='<button class="more" data-act="more">Показати всі ('+all.length+')</button>';

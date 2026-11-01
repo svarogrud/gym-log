@@ -11,7 +11,7 @@
 const TOKEN = 'ЗАМІНІТЬ-НА-СВІЙ-КЛЮЧ';
 const SHEET_NAME = 'Sheet1';     // журнал: вправи в рядках, тренування в стовпцях
 const PROGRAM_NAME = 'Програма'; // вправи: назва в журналі, назва в апці, тип, дні, підходи, повтори, вага, примітка, ID
-const DAYS_NAME = 'Дні';         // дні: №, назва, опис, колір
+const DAYS_NAME = 'Дні';         // дні (порядок рядків = порядок в апці): №, назва, опис, колір, іконка
 
 /** Відкрийте адресу веб-застосунку в браузері: має з’явитися {"ok":true,...}. */
 function doGet() {
@@ -141,15 +141,17 @@ function readProgram(ss) {
   const dr = d.getDataRange();
   const dv = dr.getDisplayValues();
   const bg = dr.getBackgrounds();
+  const dHead = dv[0] || [];
+  const colorCol = dHead.map(norm).indexOf('колір');
   const days = [];
   for (let i = 1; i < dv.length; i++) {
-    const r = dv[i];
+    const r = dv[i].slice();
     if (!String(r[0]).trim()) continue;
-    const text = String(r[3] || '').trim();
-    const color = /^#?[0-9a-f]{6}$/i.test(text) ? text : (bg[i] && bg[i][3]) || '';
-    days.push([r[0], r[1] || '', r[2] || '', color]);
+    // колір: hex у клітинці або заливка цієї клітинки
+    if (colorCol >= 0 && !/^#?[0-9a-f]{6}$/i.test(String(r[colorCol] || '').trim())) r[colorCol] = (bg[i] && bg[i][colorCol]) || '';
+    days.push(r);
   }
-  return { ok: true, days: days, ex: ex };
+  return { ok: true, daysHead: dHead, days: days, progHead: pv[0] || [], ex: ex };
 }
 
 /** Створює вкладки «Програма» і «Дні» зі стартової програми апки (лише якщо їх ще немає). */
@@ -157,11 +159,12 @@ function initProgram(ss, req) {
   if (!ss.getSheetByName(DAYS_NAME)) {
     const d = ss.insertSheet(DAYS_NAME);
     const rows = [req.daysHead].concat(req.days || []);
-    d.getRange(1, 1, rows.length, 4).setNumberFormat('@').setValues(rows);
-    d.getRange(1, 1, 1, 4).setFontWeight('bold');
+    const w = rows[0].length;
+    d.getRange(1, 1, rows.length, w).setNumberFormat('@').setValues(rows);
+    d.getRange(1, 1, 1, w).setFontWeight('bold');
     d.setFrozenRows(1);
     (req.days || []).forEach((r, i) => { if (/^#?[0-9a-f]{6}$/i.test(r[3])) d.getRange(i + 2, 4).setBackground(r[3]); });
-    d.autoResizeColumns(1, 4);
+    d.autoResizeColumns(1, w);
   }
   if (!ss.getSheetByName(PROGRAM_NAME)) {
     const p = ss.insertSheet(PROGRAM_NAME);
