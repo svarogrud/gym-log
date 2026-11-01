@@ -487,7 +487,13 @@
         var r=buildImported(g.values,nameToId,g.colors);
         // власні тренування з апки мають перевагу над тим самим днем з таблиці
         var mine={};
-        Object.keys(sessions).forEach(function(k){var s=sessions[k];if(!s.imported){mine[s.date+'_'+s.day]=1;if(s.sheetCol!=null)mine['c'+s.sheetCol]=1}});
+        // порожнє незавершене тренування (відкрили й нічого не відмітили) таблицю не перекриває
+        Object.keys(sessions).forEach(function(k){
+          var s=sessions[k];
+          if(s.imported)return;
+          if(!s.finished&&!setsDone(s)){if(!cur||cur.key!==k)delete sessions[k];return}
+          mine[s.date+'_'+s.day]=1;if(s.sheetCol!=null)mine['c'+s.sheetCol]=1;
+        });
         Object.keys(sessions).forEach(function(k){
           if(!sessions[k].imported)return;
           delete sessions[k];
@@ -505,6 +511,46 @@
         impState={state:'ok',msg:msg};
         if(view==='home')renderHome();
     }).catch(function(e){setImp('err',errText(e))});
+  }
+
+  /* ---------- calendar ---------- */
+  var calYM=null;
+  function calHTML(){
+    var now=new Date();
+    if(!calYM)calYM=[now.getFullYear(),now.getMonth()];
+    var y=calYM[0],m=calYM[1];
+    var first=new Date(y,m,1),lead=(first.getDay()+6)%7,len=new Date(y,m+1,0).getDate();
+    var pre=y+'-'+('0'+(m+1)).slice(-2)+'-',byDate={},cnt=0;
+    Object.keys(sessions).forEach(function(k){
+      var s=sessions[k];
+      if(!s.finished||s.date.indexOf(pre)!==0)return;
+      (byDate[s.date]=byDate[s.date]||[]).push(s);cnt++;
+    });
+    var title=first.toLocaleDateString('uk-UA',{month:'long'});
+    title=title.charAt(0).toUpperCase()+title.slice(1);
+    var h='<div class="calh"><button class="calb" data-act="calp" aria-label="Попередній місяць">‹</button>'+
+      '<div class="calt">'+title+' '+y+'<small>'+(cnt?cnt+' '+plural(cnt,'тренування','тренування','тренувань'):'без тренувань')+'</small></div>'+
+      '<button class="calb" data-act="caln" aria-label="Наступний місяць">›</button></div><div class="calg">';
+    ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].forEach(function(w){h+='<div class="calw">'+w+'</div>'});
+    for(var i=0;i<lead;i++)h+='<div></div>';
+    var today=todayISO();
+    for(var d=1;d<=len;d++){
+      var iso=pre+('0'+d).slice(-2),list=byDate[iso],cls='cald'+(iso===today?' today':'');
+      if(list){
+        var s0=list[0],dd=dayOf(s0.day);
+        h+='<button class="'+cls+' has'+(s0.dateFix==='est'?' est':'')+'" style="--dc:'+dd.color+'" data-act="open" data-key="'+s0.key+'" aria-label="'+d+' — '+esc(dd.n)+'">'+d+(list.length>1?'<i>'+list.length+'</i>':'')+'</button>';
+      }else h+='<div class="'+cls+'">'+d+'</div>';
+    }
+    h+='</div><div class="calk">';
+    DAYKEYS.forEach(function(k){h+='<span><b style="background:'+DAYS[k].color+'"></b>'+esc(DAYS[k].n)+'</span>'});
+    h+='</div>';
+    return h;
+  }
+  function plural(n,one,few,many){var a=n%10,b=n%100;return a===1&&b!==11?one:a>=2&&a<=4&&(b<10||b>=20)?few:many}
+  function calShift(d){
+    if(!calYM)return;
+    var t=new Date(calYM[0],calYM[1]+d,1);calYM=[t.getFullYear(),t.getMonth()];
+    var el=document.getElementById('cal');if(el)el.innerHTML=calHTML();
   }
 
   /* ---------- home ---------- */
@@ -538,6 +584,7 @@
       h+='<button class="row'+(k===nd?' next':'')+'" data-act="start" data-day="'+k+'"><div class="dn">'+d.num+'</div><div><div class="rn">'+d.n+'</div><div class="rs">'+d.sub+'</div></div><div class="rr">'+fmtDate(l)+'<br>'+ago(l)+'</div></button>';
     });
     h+='</div></div>';
+    h+='<div><div class="sec">Календар</div><div class="cal" id="cal">'+calHTML()+'</div></div>';
     var all=Object.keys(sessions).map(function(k){return sessions[k]}).filter(function(s){return s.finished&&DAYS[s.day]}).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:b.finished-a.finished});
     var hasImp=all.some(function(s){return s.imported});
     var fin=showAll?all:all.slice(0,12);
@@ -832,6 +879,8 @@
     else if(act==='imp')importHistory();
     else if(act==='cfg')openSettings();
     else if(act==='csave')saveSettings();
+    else if(act==='calp')calShift(-1);
+    else if(act==='caln')calShift(1);
     else if(act==='more'){showAll=true;var y=window.scrollY;renderHome();window.scrollTo(0,y)}
   }
   app.addEventListener('click',onClick);
@@ -860,6 +909,14 @@
 
   renderHome();
   // Офлайн-режим і запис того, що не дійшло до таблиці
+  // гортання місяців свайпом по календарю
+  var tx=null,ty=null;
+  app.addEventListener('touchstart',function(e){var c=e.target.closest&&e.target.closest('#cal');if(!c||e.touches.length!==1){tx=null;return}tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+  app.addEventListener('touchend',function(e){
+    if(tx==null)return;
+    var t=e.changedTouches[0],dx=t.clientX-tx,dy=t.clientY-ty;tx=null;
+    if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5)calShift(dx<0?1:-1);
+  },{passive:true});
   window.addEventListener('online',function(){loadProgram().then(syncPending)});
   document.addEventListener('visibilitychange',function(){if(!document.hidden)syncPending()});
   loadProgram().then(syncPending);
