@@ -1,12 +1,20 @@
 (function(){
   'use strict';
-  var APP_VERSION='29';
-  var NEED_SCRIPT=3; // має збігатися з SCRIPT_VERSION у apps-script/Code.gs
+  var APP_VERSION='30';
+  var NEED_SCRIPT=4; // має збігатися з SCRIPT_VERSION у apps-script/Code.gs
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
   try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
   var LOC=LANG==='en'?'en-GB':'uk-UA';
   var EN={
+"Пропоновані вправи": "Suggested exercises",
+"Яких вправ бракувало у вашій програмі. Відкрийте вправу й додайте в день — або просто виконайте в тренуванні.": "Exercises your program was missing. Open one and add it to a day, or just do it in a workout.",
+"Пропоную додати в день": "Suggested day",
+"Нова вправа в програмі.": "New in your program.",
+"Тренажер зайнятий чи зламаний? Вправи на ті самі м’язи замість «": "Machine busy or broken? Exercises for the same muscles instead of “",
+"Ставиться лише в це тренування.": "Only for this workout.",
+"підходи": "sets",
+"сек": "sec",
 "скрипт v": "script v",
 "Скрипт у таблиці застарів": "The script in the sheet is outdated",
 "потрібна v": "needed v",
@@ -319,6 +327,18 @@
       ['leg press (4)','Жим ногами','сила','1','3','15','59','налаштування 4','lpress','','Leg press']
     ]
   };
+  // Нові вправи, яких бракувало в програмі. Не входять у план, поки їх не додати в день
+  // (кнопки днів у деталях) або не виконати в тренуванні; тоді рядок дописується у «Програму».
+  var SUGGEST=[
+    ['romanian deadlift/румунська тяга гантелі','Румунська тяга з гантелями','сила','','3','10','12','','rdl','','Dumbbell Romanian deadlift','',''],
+    ['plank/планка','Планка','кардіо','','','підходи; сек','','3*45','plank','','Plank','',''],
+    ['face pull','Тяга до обличчя','сила','','3','15','15','канат, блок на рівні очей','face','','Face pull','',''],
+    ['hanging leg raise/підйом ніг у висі','Підйом ніг у висі','сила','','3','10','0','вага 0 = своя вага','hleg','','Hanging leg raise','',''],
+    ['pec deck/метелик','Метелик (pec deck)','сила','','3','12','30','','pdeck','','Pec deck fly','',''],
+    ['hammer curl/молоткові','Молоткові згинання','сила','','3','10','12','','hammer','','Hammer curl','','']
+  ];
+  var SUG_DAY={rdl:['A'],plank:['A','C'],face:['B'],hleg:['B'],pdeck:['C'],hammer:['C']};
+  function sugRow(id){return SUGGEST.filter(function(r){return r[8]===id})[0]}
   // Дати останніх тренувань до появи апки (поки історію не імпортовано)
   var SEED={A:'2026-10-25',B:'2026-10-27',C:'2026-10-16'};
 
@@ -384,6 +404,12 @@
       var e=exFromRow(r);if(!e||EX[e.id])return;
       EX[e.id]=e.d;NAME2ID[normName(e.d.j)]=e.id;
       e.d.days.forEach(function(k){if(DAYS[k])DAYS[k].ids.push(e.id)});
+      if(sugRow(e.id))e.d.isNew=true;
+    });
+    SUGGEST.forEach(function(r){
+      if(EX[r[8]]||NAME2ID[normName(r[0])])return;
+      var e=exFromRow(r);e.d.isNew=true;e.d.sugOnly=true;e.d.sug=SUG_DAY[e.id]||[];
+      EX[e.id]=e.d;NAME2ID[normName(e.d.j)]=e.id;
     });
     DAYS.X={n:T('Тренування'),num:'·',sub:T('без чіткого дня'),ids:[],color:'#cccccc'};
     // вправи, які є лише в одному дні, допомагають вгадати день старого стовпця
@@ -605,7 +631,9 @@
   function pushExDays(id){
     var o=exDays[id];if(!o||!o.pending||!cfg.url)return Promise.resolve(false);
     var nums=o.days.map(function(k){return DAYS[k]?String(DAYS[k].num):''}).filter(Boolean).join(', ');
-    return api('setExerciseDays',{id:id,days:nums}).then(function(){o.pending=false;saveExDays();return true},function(){return false});
+    var pre=Promise.resolve();
+    if(EX[id]&&EX[id].sugOnly&&sugRow(id)){var row=sugRow(id).slice();row[3]=nums;pre=api('addExercise',{head:PROG_HEAD,row:row})}
+    return pre.then(function(){return api('setExerciseDays',{id:id,days:nums})}).then(function(){o.pending=false;saveExDays();return true},function(){return false});
   }
   function mergeCustom(){
     Object.keys(custom).forEach(function(id){
@@ -1100,6 +1128,7 @@
     var nd=arr.filter(function(q){return q.done}).length,st=all?'done':nd?'part':(lk||cur.finished?'skip':'todo');
     return '<section class="ex st-'+st+(all?' fin':'')+(lk?' lk':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id,st,nd,arr.length)+(d.tag?'<p class="tag">'+d.tag+'</p>':'')+
       (!all&&!lk?'<button class="later" data-act="later" data-ex="'+id+T('">Пізніше</button>'):'')+
+      (!nd&&!lk&&similar(id).some(function(o){return !cur.ex[o.id]})?'<button class="later" data-act="swapl" data-ex="'+id+'">⇄ '+T('Замінити')+'</button>':'')+
       (!lk&&(cur.extra||[]).indexOf(id)>=0&&!arr.some(function(x){return x.done})?'<button class="rmx" data-act="rmx" data-ex="'+id+T('">Прибрати з тренування</button>'):'')+'</div>'+
       (lk?'<div class="wt lockw"><b class="num">'+fw(shownW)+'</b><span>'+T('кг')+'</span></div></div>':'<div class="wt"><button data-act="wm" data-ex="'+id+T('" aria-label="Менше">−</button><label><input id="w-')+id+'" type="text" inputmode="decimal" value="'+fw(curW(arr))+'" data-ex="'+id+T('" aria-label="Вага, кг"><span>кг</span></label><button data-act="wp" data-ex="')+id+T('" aria-label="Більше">+</button></div></div>'))+
       '<div class="plates">'+p+'</div>'+(!lk&&!hintShown++?'<p class="hint">'+T('Утримуйте підхід, щоб змінити його вагу чи повтори. − і + змінюють вагу наступних підходів.')+'</p>':'')+'</section>';
@@ -1342,6 +1371,11 @@
     // нові вправи, створені в цьому тренуванні, стають доступними для всіх тренувань
     (fs.extra||[]).forEach(function(xid){var xd=custom[xid];if(xd&&xd.from===fs.key&&!xd.ready){xd.ready=true;touchLib(xid)}});
     mergeCustom();
+    Object.keys(fs.ex||{}).forEach(function(xid){
+      var xd=EX[xid];if(!xd||!xd.sugOnly||(xd.days||[]).length||!anyDone(fs.ex[xid]))return;
+      var ks=DAYS[fs.day]&&fs.day!=='X'?[fs.day]:(xd.sug||[]).slice(0,1);
+      setDays(xid,ks);exDays[xid]={days:ks,pending:true,at:Date.now()};saveExDays();
+    });
     fs.finished=fs.finished||when||Date.now();fs.needSheet=true;touch(fs);
   }
   // Незавершені тренування з минулих днів: з відміченими підходами — завершуємо, порожні — прибираємо
@@ -1623,20 +1657,29 @@
     Object.keys(sessions).forEach(function(k){var s=sessions[k];if(s.finished&&s.ex&&s.ex[id]&&anyDone(s.ex[id])&&(!best||s.date>best))best=s.date});
     return best;
   }
+  // «New» — пропонована вправа, доки її жодного разу не виконано
+  function isNewEx(id){return !!(EX[id]&&EX[id].isNew&&!lastDoneDate(id))}
+  function newBadge(id){return isNewEx(id)?' <span class="newb">New</span>':''}
   function exRow(id,drag){
     var d=EX[id],l=lastDoneDate(id);
     return '<button class="row exr'+(drag?' dr':'')+'" data-act="info" data-ex="'+id+'" data-n="'+esc(normName(d.n+' '+(d.j||'')+' '+(d.tag||'')))+'">'+
       '<div class="exi">'+(window.GymAnim&&GymAnim.has(id)?'<span class="dot" aria-hidden="true">▶</span>':'')+'</div>'+
-      '<div><div class="rn">'+esc(d.n)+'</div><div class="rs">'+esc(exSummary(id))+'</div></div>'+
+      '<div><div class="rn">'+esc(d.n)+newBadge(id)+'</div><div class="rs">'+esc(exSummary(id))+'</div></div>'+
       '<div class="rr">'+(l?fmtDate(l)+(l.slice(0,4)!==todayISO().slice(0,4)?'<br>'+l.slice(0,4):''):'—')+'</div>'+
       (drag?'<span class="odrag" aria-label="'+T('Перетягнути')+'">≡</span>':'')+'</button>';
   }
-  var exOpen={};
+  var exOpen={new:true};
   function renderExList(){
     view='exlist';cur=null;setTab('exlist');
     var h='<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="'+T('Назад')+'">‹</button><h2>'+T('Вправи')+'</h2></div></div>'+
       '<input class="in" id="exq" type="search" placeholder="'+T('Пошук вправи')+'" autocomplete="off" aria-label="'+T('Пошук вправи')+'">';
     var seen={};
+    var sug=Object.keys(EX).filter(function(id){return EX[id].sugOnly&&!(EX[id].days||[]).length});
+    if(sug.length){
+      h+='<details class="exg" data-g="new"'+(exOpen.new?' open':'')+'><summary class="exh2"><span class="dn"><span class="newb">New</span></span><span class="exn">'+T('Пропоновані вправи')+'</span><span class="exc num">'+sug.length+'</span></summary><div class="rows">';
+      sug.forEach(function(id){h+=exRow(id);seen[id]=1});
+      h+='<p class="sync">'+T('Яких вправ бракувало у вашій програмі. Відкрийте вправу й додайте в день — або просто виконайте в тренуванні.')+'</p></div></details>';
+    }
     DAYKEYS.forEach(function(k){
       var ids=orderFor(k);if(!ids.length)return;
       var rows='',n=0;
@@ -1691,7 +1734,8 @@
     })(t0);
   }
   // Запити для YouTube: точна назва тренажера англійською дає релевантні відео
-  var YTQ={ell:'elliptical trainer how to use',bike:'stationary bike proper form',lowb:'seated back extension machine how to use',
+  var YTQ={rdl:'dumbbell romanian deadlift proper form',plank:'forearm plank proper form',face:'cable face pull proper form',
+    hleg:'hanging leg raise proper form',pdeck:'pec deck machine how to use',hammer:'dumbbell hammer curl proper form',ell:'elliptical trainer how to use',bike:'stationary bike proper form',lowb:'seated back extension machine how to use',
     bext:'45 degree back extension hyperextension proper form',abs:'floor crunches proper form',crunch:'ab crunch machine how to use',
     chin:'assisted pull up machine how to use',dip:'assisted dip machine how to use',shp:'converging shoulder press machine how to use',
     srow:'seated cable row proper form',rot:'rotary torso machine how to use',rear:'rear delt fly machine how to use',
@@ -1782,22 +1826,22 @@
       return sh?{id:x,score:sh*10+sh2,shared:pa.filter(function(k){return pb.indexOf(k)>=0})}:null;
     }).filter(Boolean).sort(function(p,q){return q.score-p.score}).slice(0,6);
   }
-  function similarHTML(id){
-    var list=similar(id);if(!list.length)return '';
+  function similarHTML(id,swapOnly){
+    var list=similar(id);if(swapOnly)list=list.filter(function(o){return !cur.ex[o.id]});if(!list.length)return '';
     var G=window.GymInfo,nm=LANG==='en'?G.NAMES_EN:G.NAMES,d=EX[id],h='';
     // у тому самому дні вже є вправа на ці м'язи
     var same=list.filter(function(o){return (EX[o.id].days||[]).some(function(k){return (d.days||[]).indexOf(k)>=0})});
-    h+='<div class="sec pks">'+T('Схожі вправи')+'</div>';
-    if(same.length)h+='<p class="dup">⚠ '+T('У тому самому дні вже є вправи на ці м’язи')+': '+esc(same.map(function(o){return EX[o.id].n}).join(', '))+'. '+T('Це нормально, якщо так задумано, але легко перевантажити ті самі м’язи.')+'</p>';
+    if(!swapOnly)h+='<div class="sec pks">'+T('Схожі вправи')+'</div>';
+    if(same.length&&!swapOnly)h+='<p class="dup">⚠ '+T('У тому самому дні вже є вправи на ці м’язи')+': '+esc(same.map(function(o){return EX[o.id].n}).join(', '))+'. '+T('Це нормально, якщо так задумано, але легко перевантажити ті самі м’язи.')+'</p>';
     var canSwap=cur&&view==='workout'&&cur.ex[id]&&!locked();
     h+='<div class="hist">';
     list.forEach(function(o){
       var dn=(EX[o.id].days||[]).map(function(k){return DAYS[k]?DAYS[k].n:''}).filter(Boolean).join(', ');
-      h+='<div class="hrow sim"><button class="simn" data-act="info" data-ex="'+o.id+'"><b>'+esc(EX[o.id].n)+'</b><small>'+esc(o.shared.map(function(k){return nm[k]||k}).join(', '))+(dn?' · '+esc(dn):'')+'</small></button>'+
+      h+='<div class="hrow sim"><button class="simn" data-act="info" data-ex="'+o.id+'"><b>'+esc(EX[o.id].n)+newBadge(o.id)+'</b><small>'+esc(o.shared.map(function(k){return nm[k]||k}).join(', '))+(dn?' · '+esc(dn):'')+'</small></button>'+
         (canSwap&&!cur.ex[o.id]?'<button class="retry swp" data-act="swap" data-ex="'+o.id+'" data-from="'+id+'">'+T('Замінити')+'</button>':'')+'</div>';
     });
     h+='</div>';
-    if(canSwap)h+='<p class="sync">'+T('«Замінити» ставить схожу вправу замість цієї лише в цьому тренуванні — коли тренажер зайнятий чи зламаний.')+'</p>';
+    if(canSwap&&!swapOnly)h+='<p class="sync">'+T('«Замінити» ставить схожу вправу замість цієї лише в цьому тренуванні — коли тренажер зайнятий чи зламаний.')+'</p>';
     return h;
   }
   function dayColorOf(id){
@@ -1836,6 +1880,7 @@
     if(d.j&&normName(d.j)!==normName(d.n))sub.push(d.j);
     if(d.tag&&normName(d.tag)!==normName(d.j))sub.push(d.tag);
     if(sub.length)h+='<p class="sync">'+esc(sub.join(' · '))+'</p>';
+    if(isNewEx(id))h+='<p class="newp"><span class="newb">New</span> '+(d.sugOnly&&!(d.days||[]).length&&(d.sug||[]).length?T('Пропоную додати в день')+': '+esc(d.sug.map(function(k){return DAYS[k]?DAYS[k].n:''}).filter(Boolean).join(', '))+'.':T('Нова вправа в програмі.'))+'</p>';
     var hasAnim=!!(window.GymAnim&&GymAnim.has(id)),md=mediaHTML(d.media);
     var col=cur&&DAYS[cur.day]&&cur.day!=='X'?DAYS[cur.day].color:(EX[id].days&&EX[id].days[0]&&DAYS[EX[id].days[0]]?DAYS[EX[id].days[0]].color:'var(--accent)');
     if(hasAnim)h+='<div class="animbox" style="color:'+col+'"><div id="animv">'+GymAnim.frame(id,0)+'</div></div>';
@@ -2023,6 +2068,12 @@
     else if(act==='upd')updateApp();
     else if(act==='exlist')renderExList();
     else if(act==='prompt')openPrompt();
+    else if(act==='swapl'){
+      var sd=EX[id];if(!sd)return;
+      pk.innerHTML='<div class="pkp" role="dialog" aria-label="'+T('Замінити')+'"><div class="pkh"><h2>'+T('Замінити')+'</h2><button class="back" data-act="pclose" aria-label="'+T('Закрити')+'">×</button></div>'+
+        '<p class="sync">'+T('Тренажер зайнятий чи зламаний? Вправи на ті самі м’язи замість «')+esc(sd.n)+'». '+T('Ставиться лише в це тренування.')+'</p>'+similarHTML(id,true)+'</div>';
+      pk.hidden=false;
+    }
     else if(act==='swap'){
       var from=b.getAttribute('data-from');if(!cur||!cur.ex[from]||cur.ex[id])return;
       var ord=sIds(cur),pos=ord.indexOf(from);

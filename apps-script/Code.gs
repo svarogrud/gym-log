@@ -1,8 +1,8 @@
 /**
- * Gym Log ↔ Google Sheets.  ВЕРСІЯ СКРИПТА: 3
+ * Gym Log ↔ Google Sheets.  ВЕРСІЯ СКРИПТА: 4
  *
- * Після вставки перевірте: ⚙ в апці → «Зберегти й перевірити» покаже «скрипт v3»,
- * а адреса веб-застосунку в браузері — {"ok":true,"app":"gym-log","version":3}.
+ * Після вставки перевірте: ⚙ в апці → «Зберегти й перевірити» покаже «скрипт v4»,
+ * а адреса веб-застосунку в браузері — {"ok":true,"app":"gym-log","version":4}.
  *
  * Вставте цей файл у свою таблицю: Розширення → Apps Script.
  * Замініть TOKEN на власний довгий ключ і опублікуйте як веб-застосунок
@@ -11,7 +11,7 @@
  *
  * @OnlyCurrentDoc  скрипт отримує доступ лише до цієї таблиці, а не до всіх ваших файлів
  */
-const SCRIPT_VERSION = 3;     // збільшується з кожною зміною цього файлу
+const SCRIPT_VERSION = 4;     // збільшується з кожною зміною цього файлу
 const TOKEN = 'ЗАМІНІТЬ-НА-СВІЙ-КЛЮЧ';
 const SHEET_NAME = 'Sheet1';     // журнал: вправи в рядках, тренування в стовпцях
 const PROGRAM_NAME = 'Програма'; // вправи: назва в журналі, назва в апці, тип, дні, підходи, повтори, вага, примітка, ID, медіа
@@ -198,12 +198,34 @@ function initProgram(ss, req) {
 function addExercise(ss, req) {
   const p = ss.getSheetByName(PROGRAM_NAME);
   if (!p) return { ok: false, error: 'no_program', message: 'Немає вкладки «' + PROGRAM_NAME + '»' };
-  const row = (req.row || []).slice(0, 9);
+  const row = (req.row || []).map(v => v == null ? '' : String(v));
   if (!row[0] && !row[1]) return { ok: false, error: 'bad_row' };
-  const ids = p.getRange(1, 9, Math.max(p.getLastRow(), 1), 1).getDisplayValues().map(r => r[0]);
+  const lastCol = Math.max(p.getLastColumn(), 1);
+  const head = p.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+  const h = head.map(norm);
+  const idCol = h.indexOf('id') >= 0 ? h.indexOf('id') : 8;
+  const ids = p.getRange(1, idCol + 1, Math.max(p.getLastRow(), 1), 1).getDisplayValues().map(r => String(r[0]).trim());
   if (row[8] && ids.indexOf(row[8]) >= 0) return { ok: true, existed: true };
+  let out;
+  if (req.head && req.head.length) {
+    // значення за назвами колонок (req.head[i] ↔ row[i]); відсутню колонку створюємо
+    out = Array(head.length).fill('');
+    req.head.forEach((name, i) => {
+      if (row[i] === undefined || row[i] === '') return;
+      let c = h.indexOf(norm(name));
+      if (c < 0) {
+        c = head.length; head.push(name); h.push(norm(name)); out.push('');
+        if (c + 1 > p.getMaxColumns()) p.insertColumnsAfter(p.getMaxColumns(), c + 1 - p.getMaxColumns());
+        p.getRange(1, c + 1).setValue(name).setFontWeight('bold');
+      }
+      out[c] = row[i];
+    });
+  } else {
+    out = row.slice(0, 9);
+    while (out.length < 9) out.push('');
+  }
   const at = p.getLastRow() + 1;
-  p.getRange(at, 1, 1, 9).setNumberFormat('@').setValues([row.concat(Array(9 - row.length).fill(''))]);
+  p.getRange(at, 1, 1, out.length).setNumberFormat('@').setValues([out]);
   return { ok: true, row: at };
 }
 
