@@ -222,10 +222,10 @@ svg.anim .pl{fill:none;stroke:var(--muted);stroke-width:3}
 .lockw span{color:var(--muted);font-size:13px}
 .ex.lk .cff input{border-bottom-color:transparent}
 .cdone:disabled{opacity:1;color:var(--muted)}
-.grp{border:1px solid var(--line);border-radius:8px;padding:0 12px;margin:12px 0}
-.grp>.ex:last-child{border-bottom:0}
-.grph{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 0 2px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
-.ssg{border-left:4px solid var(--accent)}
+.grp{border-bottom:1px solid var(--line)}
+.grp>.ex{border-bottom:0}
+.grp>.ex+.ex{border-top:1px dashed var(--line)}
+.grph{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 0 0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .ssn{text-transform:none;letter-spacing:0;font-weight:500}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;text-transform:none;letter-spacing:0}
 .sgb{padding:7px 12px;font-weight:600;font-size:14px;color:var(--muted)}
@@ -244,12 +244,9 @@ svg.anim .pl{fill:none;stroke:var(--muted);stroke-width:3}
 .stp{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.02em}
 .stp.part{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}
 .stp.skip{background:color-mix(in srgb,var(--muted) 18%,transparent);color:var(--muted)}
-.ex.st-done{box-shadow:inset 3px 0 0 var(--done);padding-left:12px;margin-left:-12px}
 .ex.st-done .ttl{color:var(--done)}
-.ex.st-part{box-shadow:inset 3px 0 0 var(--accent);padding-left:12px;margin-left:-12px}
 .ex.st-skip{opacity:.55}
 .ex.st-skip .ttl{color:var(--muted)}
-.grp .ex.st-done,.grp .ex.st-part{margin-left:-12px}
 .yr{font-family:var(--f-display);font-weight:800;font-size:22px;color:var(--muted);padding:16px 0 4px;border-bottom:1px solid var(--line)}
 .more{width:100%;padding:14px;font-weight:600;color:var(--accent);text-align:center}
 .imp{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px}
