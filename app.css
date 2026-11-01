@@ -140,6 +140,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .ico{font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;font-weight:400;line-height:1;display:inline-block}
 .hero .big .ico{font-size:72px}
 .row .dn .ico{font-size:26px}
+.ico.svg{display:block}
+.ico.svg svg{display:block;width:1em;height:1em}
+.hero .big .ico.svg{font-size:84px}
+.row .dn .ico.svg{font-size:34px}
 .yr{font-family:var(--f-display);font-weight:800;font-size:22px;color:var(--muted);padding:16px 0 4px;border-bottom:1px solid var(--line)}
 .more{width:100%;padding:14px;font-weight:600;color:var(--accent);text-align:center}
 .imp{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px}

@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  var APP_VERSION='7 · 1 лист. 2026';
+  var APP_VERSION='8 · 1 лист. 2026';
   /* ---------- програма тренувань ----------
      Джерело правди — вкладки «Програма» і «Дні» в таблиці. Нижче — стартова програма,
      з якої ці вкладки створюються, і яку апка використовує, доки таблицю не підключено. */
@@ -8,9 +8,9 @@
   var DAYS_HEAD=['№','Назва','Опис','Колір','Іконка'];
   var BUILTIN={
     days:[
-      ['1','Ноги','ноги, підтягування, бруси','#ff9900','🦵'],
-      ['2','Плечі та спина','плечі, спина, підтягування','#4a86e8','🏋️'],
-      ['3','Груди та руки','груди, біцепс, трицепс','#9900ff','💪']
+      ['1','Ноги','ноги, підтягування, бруси','#ff9900','ноги'],
+      ['2','Плечі та спина','плечі, спина, підтягування','#4a86e8','спина'],
+      ['3','Груди та руки','груди, біцепс, трицепс','#9900ff','груди']
     ],
     ex:[
       ['elipse','Еліпс','кардіо','1, 2, 3','','','','15*10*7','ell'],
@@ -104,8 +104,37 @@
     Object.keys(DAYS).forEach(function(k){DAYHEX[k]=DAYS[k].color;DAYCOL[k]=hexRgb(DAYS[k].color)});
   }
   applyProgram(null);
-  // Значок дня: іконка з вкладки «Дні», а якщо її немає — номер
-  function badge(d){return d&&d.icon?'<span class="ico">'+esc(d.icon)+'</span>':(d?d.num:'')}
+  // Іконки днів (24×24, лінійні). У вкладці «Дні» в колонці «Іконка» пишіть назву або вставте емодзі
+  var ICONS={
+  // присідання зі штангою
+  'ноги':'<circle cx="9.5" cy="3.6" r="1.9"/><path d="M3.5 7.5h14"/><path d="M5 6v3M16 6v3"/><path d="M9.5 7.5l1.6 6.2 5.4 1.1-1.6 5.7h3"/><path d="M8 7.5l-1 3"/>',
+  // підтягування
+  'спина':'<path d="M3 3.5h18"/><path d="M8 3.5l1.2 5.5h5.6L16 3.5"/><circle cx="12" cy="6.7" r="1.8"/><path d="M12 9v6.5"/><path d="M12 15.5l-2.2 5M12 15.5l2.2 5"/>',
+  // жим лежачи
+  'груди':'<path d="M3 16.5h15"/><path d="M5.5 16.5v4M15.5 16.5v4"/><circle cx="4.6" cy="12.8" r="1.8"/><path d="M6.6 13.6h9.4l2.5 3"/><path d="M10 13.6V7"/><path d="M4.5 7h11"/><path d="M6 5.3v3.4M14 5.3v3.4"/>',
+  'штанга':'<path d="M2 12h20"/><rect x="4.5" y="6.5" width="3" height="11" rx="1"/><rect x="16.5" y="6.5" width="3" height="11" rx="1"/>',
+  'гантель':'<path d="M8 12h8"/><rect x="3" y="8" width="5" height="8" rx="1.5"/><rect x="16" y="8" width="5" height="8" rx="1.5"/>',
+  'гиря':'<path d="M8.5 9.3V7.5a3.5 3.5 0 0 1 7 0v1.8"/><path d="M6.5 15a5.5 5.5 0 1 1 11 0c0 1.9-.9 3.6-2.3 4.6H8.8A5.6 5.6 0 0 1 6.5 15z"/>',
+  'кардіо':'<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/><path d="M3.5 12.5h4l1.5-2.5 2 5 1.5-2.5h8"/>'
+  };
+  var ICON_ALIAS={'присідання':'ноги','legs':'ноги','squat':'ноги','підтягування':'спина','back':'спина','pullup':'спина',
+    'жим':'груди','chest':'груди','bench':'груди','руки':'гантель','рука':'гантель','біцепс':'гантель','dumbbell':'гантель',
+    'barbell':'штанга','kettlebell':'гиря','cardio':'кардіо','серце':'кардіо'};
+  function iconSvg(name,sw){
+    var k=normName(name);k=ICON_ALIAS[k]||k;
+    if(!ICONS[k])return '';
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(sw||1.9)+'" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+ICONS[k]+'</svg>';
+  }
+  // Значок дня: лінійна іконка кольору дня, емодзі або номер
+  function badge(d){
+    if(!d)return '';
+    if(d.icon){
+      var sv=iconSvg(d.icon);
+      if(sv)return '<span class="ico svg" style="color:'+d.color+'">'+sv+'</span>';
+      return '<span class="ico">'+esc(d.icon)+'</span>';
+    }
+    return d.num;
+  }
   // Рядки вкладок → у фіксованому порядку колонок, за назвами заголовків (порядок колонок у таблиці може бути будь-який)
   function canon(head,rows,want){
     if(!head||!head.length)return rows;
@@ -556,7 +585,7 @@
       }else h+='<div class="'+cls+'">'+d+'</div>';
     }
     h+='</div><div class="calk">';
-    DAYKEYS.forEach(function(k){h+='<span><b style="background:'+DAYS[k].color+'"></b>'+(DAYS[k].icon?esc(DAYS[k].icon)+' ':'')+esc(DAYS[k].n)+'</span>'});
+    DAYKEYS.forEach(function(k){h+='<span><b style="background:'+DAYS[k].color+'"></b>'+esc(DAYS[k].n)+'</span>'});
     h+='</div>';
     return h;
   }
