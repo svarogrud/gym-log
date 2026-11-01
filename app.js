@@ -1,11 +1,16 @@
 (function(){
   'use strict';
-  var APP_VERSION='20';
+  var APP_VERSION='22';
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
   try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
-  var LOC=LANG==='en'?'en-GB':LOC;
+  var LOC=LANG==='en'?'en-GB':'uk-UA';
   var EN={
+"Тренування триває": "Workout in progress",
+" підходів": " sets",
+"Продовжити": "Continue",
+"Видалити незавершене тренування": "Delete unfinished workout",
+"Завершити": "Finish",
 "Порядок дня збережено": "Day order saved",
 "Порядок збережено на телефоні": "Order saved on this phone",
 "Перетягнути": "Drag",
@@ -875,8 +880,11 @@
     if(!cfg.url)h+=T('<button class="resume" data-act="cfg"><div><b>Підключіть таблицю</b><div class="tag">Щоб підтягнути історію й зберігати резервну копію</div></div><span>Налаштувати</span></button>');
     if(bkFocus&&sessions[bkFocus])h+='<div id="bkbox" class="bkbox" data-key="'+bkFocus+'">'+bkInner(sessions[bkFocus])+'</div>';
     if(open){
-      h+='<div class="resume rs2" id="resume"><button class="rmain" data-act="open" data-key="'+open.key+T('"><div><b>Тренування триває</b><div class="tag">')+dayOf(open.day).n+' · '+setsDone(open)+T(' з ')+setsTotal(open)+T(' підходів</div></div><span>Продовжити</span></button>')+
-        '<button class="rx" data-act="rdel" data-key="'+open.key+T('" aria-label="Видалити незавершене тренування">✕</button></div>');
+      // картка: інформація зверху, дії окремим рядком
+      h+='<div class="resume rs2" id="resume"><button class="rmain" data-act="open" data-key="'+open.key+'"><div><b>'+T('Тренування триває')+'</b><div class="tag">'+esc(dayOf(open.day).n)+' · '+setsDone(open)+T(' з ')+setsTotal(open)+T(' підходів')+'</div></div></button>'+
+        '<div class="ract"><button class="rgo" data-act="open" data-key="'+open.key+'">'+T('Продовжити')+'</button>'+
+        '<button class="rfin" data-act="rfin" data-key="'+open.key+'">'+T('Завершити')+'</button>'+
+        '<button class="rx" data-act="rdel" data-key="'+open.key+'" aria-label="'+T('Видалити незавершене тренування')+'">✕</button></div></div>';
     }
     h+='<div class="hero"><div class="big">'+badge(dd)+T('</div><div class="kick">Наступне за чергою</div><h2>')+dd.n+'</h2><div class="meta">'+dd.ids.length+T(' вправ · останнє ')+fmtDate(lastDate(nd))+'</div><button class="cta" data-act="start" data-day="'+nd+T('">Почати тренування</button></div>');
     h+=T('<div><div class="sec">Усі дні</div><div class="rows">');
@@ -955,7 +963,7 @@
   function renderWorkout(){
     view='workout';
     var dd=dayOf(cur.day);
-    var h=T('<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="Назад">‹</button><h2>')+dd.n+T('</h2><div class="cnt num" id="pc"></div><button class="back" data-act="ord" aria-label="Змінити порядок вправ">⇅</button></div><div class="bar"><i id="pb"></i></div></div>')+
+    var h=T('<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="Назад">‹</button><h2>')+dd.n+T('</h2><div class="cnt num" id="pc"></div><button class="back" data-act="ord" aria-label="Змінити порядок вправ">⇅</button>')+(cur.draft?'':'<button class="back fin" data-act="finish" aria-label="'+(cur.finished?T('Зберегти зміни'):T('Завершити тренування'))+'">✓</button>')+'</div><div class="bar"><i id="pb"></i></div></div>'+
       (cur.draft?T('<div class="draft" id="draftb"><p>Перегляд. Тренування почнеться, коли натиснете кнопку або відмітите перший підхід.</p><button class="cta" data-act="begin">Почати тренування</button></div>'):'')+
       '<div class="list">';
     sIds(cur).forEach(function(id){h+=cardHTML(id)});
@@ -1140,6 +1148,26 @@
     openOrder();
     var p2=pk.querySelector('.pkp');if(p2)p2.scrollTop=y;
     var btn=pk.querySelector('[data-act="omv"][data-ex="'+id+'"][data-d="'+dir+'"]');if(btn&&!btn.disabled)try{btn.focus({preventScroll:true})}catch(e){}
+  }
+  function finishSession(fs,when){
+    // нові вправи, створені в цьому тренуванні, стають доступними для всіх тренувань
+    (fs.extra||[]).forEach(function(xid){var xd=custom[xid];if(xd&&xd.from===fs.key&&!xd.ready){xd.ready=true;touchLib(xid)}});
+    mergeCustom();
+    fs.finished=fs.finished||when||Date.now();fs.needSheet=true;touch(fs);
+  }
+  // Незавершені тренування з минулих днів: з відміченими підходами — завершуємо, порожні — прибираємо
+  function autoFinish(){
+    var today=todayISO(),n=0,changed=false;
+    Object.keys(sessions).forEach(function(k){
+      var s=sessions[k];
+      if(s.finished||s.date>=today)return;
+      if(cur&&cur.key===k&&view==='workout')return;
+      if(setsDone(s)){finishSession(s,s.updated||Date.now());n++;changed=true}
+      else{delete sessions[k];changed=true}
+    });
+    if(changed){saveLocal();if(view==='home')renderHome()}
+    if(n)syncPending();
+    return n;
   }
   function beginDraft(rerender){
     if(!cur||!cur.draft)return;
@@ -1449,12 +1477,13 @@
     }else if(act==='wm')stepWeight(id,-1);
     else if(act==='wp')stepWeight(id,1);
     else if(act==='finish'){
-      var fs=cur;
-      // нові вправи, створені в цьому тренуванні, стають доступними для всіх тренувань
-      (fs.extra||[]).forEach(function(xid){var xd=custom[xid];if(xd&&xd.from===fs.key&&!xd.ready){xd.ready=true;touchLib(xid)}});
-      mergeCustom();
-      fs.finished=fs.finished||Date.now();fs.needSheet=true;touch(fs);hideRest();
-      bkFocus=fs.key;renderHome();sendToSheet(fs);
+      if(!cur||cur.draft)return;
+      finishSession(cur);hideRest();
+      bkFocus=cur.key;var fk=cur;renderHome();sendToSheet(fk);
+    }
+    else if(act==='rfin'){
+      var rs=sessions[b.getAttribute('data-key')];if(!rs)return;
+      finishSession(rs);bkFocus=rs.key;renderHome();sendToSheet(rs);
     }else if(act==='bk'){
       var bs=sessions[b.getAttribute('data-key')]||cur;
       if(bs){bs.needSheet=true;saveLocal();bkFocus=bs.key;sendToSheet(bs)}
@@ -1604,7 +1633,8 @@
     if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5)calShift(dx<0?1:-1);
   },{passive:true});
   window.addEventListener('online',function(){loadProgram().then(syncPending)});
-  document.addEventListener('visibilitychange',function(){if(!document.hidden)syncPending()});
+  document.addEventListener('visibilitychange',function(){if(!document.hidden){autoFinish();syncPending()}});
+  autoFinish();
   loadProgram().then(syncPending);
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}catch(e){}
   if('serviceWorker' in navigator){
