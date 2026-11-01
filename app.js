@@ -1,12 +1,19 @@
 (function(){
   'use strict';
-  var APP_VERSION='34';
-  var NEED_SCRIPT=5; // має збігатися з SCRIPT_VERSION у apps-script/Code.gs
+  var APP_VERSION='35';
+  var NEED_SCRIPT=6; // має збігатися з SCRIPT_VERSION у apps-script/Code.gs
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
   try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
   var LOC=LANG==='en'?'en-GB':'uk-UA';
   var EN={
+"Історія з таблиці": "History from the sheet",
+"За який період підтягнути тренування? Останні 10 днів апка й так оновлює сама при кожному відкритті.": "Which period should be pulled? The app already refreshes the last 10 days every time it opens.",
+"Останні 30 днів": "Last 30 days",
+"Останні 3 місяці": "Last 3 months",
+"Останній рік": "Last year",
+"Уся історія": "All history",
+"За період з ": "Since ",
 "З таблиці підтягнуто нових чи змінених тренувань: ": "New or changed workouts pulled from the sheet: ",
 "У цей день інший пристрій уже записав тренування — щоб не затерти його, записано в новий стовпець ": "Another device already saved a workout for this day — to avoid overwriting it, saved to a new column ",
 "Інший пристрій уже записав цей день — записано в окремий стовпець ": "Another device already saved this day — saved to a separate column ",
@@ -572,7 +579,9 @@
     return {values:vals,colors:cols};
   }
   // values: масив рядків таблиці; colors: кольори тих самих клітинок. Повертає тренування і кількість нерозпізнаних клітинок
-  function buildImported(values,nameToId,colors){
+  // off — скільки стовпців таблиці пропущено перед отриманими (коли читаємо лише останні)
+  function buildImported(values,nameToId,colors,off){
+    off=off||0;
     var head=values[0]||[],cols=head.length,out=[],bad=0;
     var rowIds=[];
     for(var r=1;r<values.length;r++){
@@ -610,12 +619,12 @@
       // пропущені вправи цього дня лишаються в тренуванні як «Пропущено»; чужі білі клітинки (скопійовані зі стовпця іншого дня) ігноруємо
       Object.keys(sk).forEach(function(id){if(!ex[id]&&dids.indexOf(id)>=0)ex[id]=sk[id]});
       var extra=Object.keys(ex).filter(function(id){return dids.indexOf(id)<0});
-      var key=f.iso+'_'+day,n2=2;
+      var key=f.iso+'_'+day,n2=2,sc=c2+off;
       while(used[key])key=f.iso+'_'+day+'_'+(n2++);
       used[key]=1;
       var ts=dayNum(f.iso)*86400000+12*3600000;
       out.push({key:key,day:day,date:f.iso,started:ts,finished:ts,updated:now,ex:ex,extra:extra,
-        imported:true,sheetCol:c2,sheetAt:now,dateFix:f.fix||null,rawDate:head[c2]==null?'':String(head[c2])});
+        imported:true,sheetCol:sc,sheetAt:now,dateFix:f.fix||null,rawDate:head[c2]==null?'':String(head[c2])});
     }
     return {sessions:out,bad:bad,skipped:skippedCells};
   }
@@ -719,6 +728,7 @@
   }
   restSec=parseInt(lsGet(LSR)||'90',10)||90;
 
+  function daysAgoISO(n){var d=new Date();d.setDate(d.getDate()-n);return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
   function todayISO(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
   function fmtDate(iso){return new Date(iso+'T12:00:00').toLocaleDateString(LOC,{day:'numeric',month:'short'})}
   function ago(iso){
@@ -950,19 +960,24 @@
     // посеред тренування чи з відкритим вікном не чіпаємо — щоб не загубити зміни
     if(view==='workout'||!pk.hidden||Date.now()-impLast<60000)return Promise.resolve();
     impLast=Date.now();
-    return importHistory(true);
+    return importHistory(true,10);
   }
-  function importHistory(quiet){
+  // days — лише тренування за останні N днів (інші імпортовані не чіпаємо); 0/порожньо — уся історія
+  function importHistory(quiet,days){
+    var since=days?daysAgoISO(days):'';
+    var inRange=function(s){return !since||s.date>=since};
     if(impState&&impState.state==='busy')return Promise.resolve();
     impBusy=true;
     if(!quiet)setImp('busy',T('Читаю таблицю…'));
     var before={};Object.keys(sessions).forEach(function(k){var s=sessions[k];before[k]=s.imported?(s.sheetCol+'|'+JSON.stringify(s.ex)):1});
-    return (quiet?Promise.resolve():loadProgram()).then(function(){return api('read')}).then(function(j){
+    // ~1,6 тренування на тиждень: останні 8 стовпців з запасом покривають 10 днів
+    return (quiet?Promise.resolve():loadProgram()).then(function(){return api('read',days&&days<=14?{lastCols:8}:{})}).then(function(j){
         impBusy=false;
         if(quiet&&(view==='workout'||!pk.hidden))return;
         var g=gridFromApi(j);
         if(!g.values.length){if(!quiet)setImp('err',T('Таблиця порожня або недоступна.'));return}
-        var r=buildImported(g.values,nameToId,g.colors);
+        var r=buildImported(g.values,nameToId,g.colors,j.offset||0);
+        r.sessions=r.sessions.filter(inRange);
         // власні тренування з апки мають перевагу над тим самим днем з таблиці
         var mine={};
         // порожнє незавершене тренування (відкрили й нічого не відмітили) таблицю не перекриває
@@ -973,7 +988,7 @@
           mine[s.date+'_'+s.day]=1;if(s.sheetCol!=null)mine['c'+s.sheetCol]=1;
         });
         Object.keys(sessions).forEach(function(k){
-          if(!sessions[k].imported)return;
+          if(!sessions[k].imported||!inRange(sessions[k]))return;
           delete sessions[k];
         });
         var added=0,skipped=0,fixed=0;
@@ -982,7 +997,7 @@
           sessions[s.key]=s;added++;if(s.dateFix)fixed++;
         });
         saveLocal();
-        var msg=T('Імпортовано тренувань: ')+added+T('. Незафарбовані клітинки (')+r.skipped+T(') пораховано як пропущені.');
+        var msg=(since?T('За період з ')+fmtDate(since)+' — ':'')+T('Імпортовано тренувань: ')+added+T('. Незафарбовані клітинки (')+r.skipped+T(') пораховано як пропущені.');
         if(fixed)msg+=T(' Виправлено дат: ')+fixed+T(' (позначені ≈, якщо дата приблизна).');
         if(skipped)msg+=T(' Пропущено ')+skipped+T(', бо вони вже є в апці.');
         if(r.bad)msg+=T(' Не вдалося розібрати клітинок: ')+r.bad+'.';
@@ -2177,7 +2192,15 @@
     else if(act==='ppick'){addEx(id);closePicker()}
     else if(act==='pnew')createEx();
     else if(act==='rmx')removeEx(id);
-    else if(act==='imp')importHistory();
+    else if(act==='imp'){
+      // вибір періоду: старіші імпортовані тренування лишаються як є
+      var op=[[30,'Останні 30 днів'],[90,'Останні 3 місяці'],[365,'Останній рік'],[0,'Уся історія']];
+      pk.innerHTML='<div class="pkp" role="dialog" aria-label="'+T('Оновити історію з таблиці')+'"><div class="pkh"><h2>'+T('Історія з таблиці')+'</h2><button class="back" data-act="pclose" aria-label="'+T('Закрити')+'">×</button></div>'+
+        '<p class="sync">'+T('За який період підтягнути тренування? Останні 10 днів апка й так оновлює сама при кожному відкритті.')+'</p><div class="impopts">'+
+        op.map(function(o){return '<button class="retry" data-act="impp" data-days="'+o[0]+'">'+T(o[1])+'</button>'}).join('')+'</div></div>';
+      pk.hidden=false;
+    }
+    else if(act==='impp'){closePicker();importHistory(false,parseInt(b.getAttribute('data-days'),10)||0)}
     else if(act==='cfg')openSettings();
     else if(act==='csave')saveSettings();
     else if(act==='upd')updateApp();
