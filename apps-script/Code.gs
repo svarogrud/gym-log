@@ -7,7 +7,9 @@
  * Той самий ключ вставте в апку (⚙ → «Ключ із скрипта»).
  */
 const TOKEN = 'ЗАМІНІТЬ-НА-СВІЙ-КЛЮЧ';
-const SHEET_NAME = 'Sheet1';
+const SHEET_NAME = 'Sheet1';     // журнал: вправи в рядках, тренування в стовпцях
+const PROGRAM_NAME = 'Програма'; // вправи: назва в журналі, назва в апці, тип, дні, підходи, повтори, вага, примітка, ID
+const DAYS_NAME = 'Дні';         // дні: №, назва, опис, колір
 
 /** Відкрийте адресу веб-застосунку в браузері: має з’явитися {"ok":true,...}. */
 function doGet() {
@@ -42,6 +44,12 @@ function doPost(e) {
       }
       case 'write':
         return json(write(sh, req));
+      case 'program':
+        return json(readProgram(ss));
+      case 'initProgram':
+        return json(initProgram(ss, req));
+      case 'addExercise':
+        return json(addExercise(ss, req));
       default:
         return json({ ok: false, error: 'bad_action' });
     }
@@ -107,6 +115,74 @@ function write(sh, req) {
   });
 
   return { ok: true, col: col, reused: reused, rows: rows };
+}
+
+/** Читає вкладки «Програма» і «Дні». Рядкам без ID дає ID, щоб записи в апці не губилися. */
+function readProgram(ss) {
+  const p = ss.getSheetByName(PROGRAM_NAME);
+  const d = ss.getSheetByName(DAYS_NAME);
+  if (!p || !d) return { ok: true, missing: true };
+
+  const pv = p.getDataRange().getDisplayValues();
+  const ex = [];
+  for (let i = 1; i < pv.length; i++) {
+    const r = pv[i].slice(0, 9);
+    while (r.length < 9) r.push('');
+    if (!String(r[0]).trim() && !String(r[1]).trim()) continue;
+    if (!String(r[8]).trim()) {
+      r[8] = 'x' + Utilities.getUuid().replace(/-/g, '').slice(0, 10);
+      p.getRange(i + 1, 9).setValue(r[8]);
+    }
+    ex.push(r);
+  }
+
+  const dr = d.getDataRange();
+  const dv = dr.getDisplayValues();
+  const bg = dr.getBackgrounds();
+  const days = [];
+  for (let i = 1; i < dv.length; i++) {
+    const r = dv[i];
+    if (!String(r[0]).trim()) continue;
+    const text = String(r[3] || '').trim();
+    const color = /^#?[0-9a-f]{6}$/i.test(text) ? text : (bg[i] && bg[i][3]) || '';
+    days.push([r[0], r[1] || '', r[2] || '', color]);
+  }
+  return { ok: true, days: days, ex: ex };
+}
+
+/** Створює вкладки «Програма» і «Дні» зі стартової програми апки (лише якщо їх ще немає). */
+function initProgram(ss, req) {
+  if (!ss.getSheetByName(DAYS_NAME)) {
+    const d = ss.insertSheet(DAYS_NAME);
+    const rows = [req.daysHead].concat(req.days || []);
+    d.getRange(1, 1, rows.length, 4).setNumberFormat('@').setValues(rows);
+    d.getRange(1, 1, 1, 4).setFontWeight('bold');
+    d.setFrozenRows(1);
+    (req.days || []).forEach((r, i) => { if (/^#?[0-9a-f]{6}$/i.test(r[3])) d.getRange(i + 2, 4).setBackground(r[3]); });
+    d.autoResizeColumns(1, 4);
+  }
+  if (!ss.getSheetByName(PROGRAM_NAME)) {
+    const p = ss.insertSheet(PROGRAM_NAME);
+    const rows = [req.progHead].concat(req.ex || []);
+    p.getRange(1, 1, rows.length, 9).setNumberFormat('@').setValues(rows);
+    p.getRange(1, 1, 1, 9).setFontWeight('bold');
+    p.setFrozenRows(1);
+    p.autoResizeColumns(1, 9);
+  }
+  return { ok: true };
+}
+
+/** Нова вправа з апки: рядок у «Програму». Рядок у журналі з’явиться під час першого запису тренування. */
+function addExercise(ss, req) {
+  const p = ss.getSheetByName(PROGRAM_NAME);
+  if (!p) return { ok: false, error: 'no_program', message: 'Немає вкладки «' + PROGRAM_NAME + '»' };
+  const row = (req.row || []).slice(0, 9);
+  if (!row[0] && !row[1]) return { ok: false, error: 'bad_row' };
+  const ids = p.getRange(1, 9, Math.max(p.getLastRow(), 1), 1).getDisplayValues().map(r => r[0]);
+  if (row[8] && ids.indexOf(row[8]) >= 0) return { ok: true, existed: true };
+  const at = p.getLastRow() + 1;
+  p.getRange(at, 1, 1, 9).setNumberFormat('@').setValues([row.concat(Array(9 - row.length).fill(''))]);
+  return { ok: true, row: at };
 }
 
 function sameDate(h, iso) {

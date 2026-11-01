@@ -1,5 +1,5 @@
 // Gym Log service worker: app works offline, updates arrive on the next launch
-const CACHE = 'gym-log-v1';
+const CACHE = 'gym-log-v2';
 const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 

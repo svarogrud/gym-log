@@ -1,61 +1,110 @@
 (function(){
   'use strict';
-  var S=function(n,r,w){var a=[];for(var i=0;i<n;i++)a.push([r,w]);return a};
-
-  // Дані взято з таблиці Gym: підходи × повторення × вага
-  var EX={
-    ell:{n:'Еліпс',t:'cardio',d:'15 · 10 · 7',nt:'значення з таблиці',sh:'15*10*7'},
-    bike:{n:'Велосипед',t:'cardio',d:'20 хв',sh:'20 min'},
-    lowb:{n:'Низ спини',tag:'low back',s:S(3,15,77)},
-    bext:{n:'Гіперекстензія',tag:'back extension',s:S(3,15,77)},
-    abs:{n:'Прес лежачи',tag:'вага 0 = своя вага',s:S(3,15,0)},
-    crunch:{n:'Скручування на тренажері',tag:'P14',s:S(3,15,59)},
-    chin:{n:'Підтягування',tag:'chin',s:S(3,8,20)},
-    dip:{n:'Бруси',tag:'dip',s:S(3,10,20)},
-    shp:{n:'Жим вгору на тренажері',tag:'shoulder press',s:S(3,10,23)},
-    srow:{n:'Тяга сидячи',tag:'seated row',s:S(2,10,36)},
-    rot:{n:'Повороти корпусу',tag:'P22 rotary torso',s:S(3,10,50)},
-    rear:{n:'Задня дельта',tag:'rear delt',s:S(3,10,39)},
-    lat:{n:'Махи в сторони',tag:'P20 lateral raise',s:S(3,10,45)},
-    drow:{n:'Розвідна тяга сидячи',tag:'P6 diverging seated row',s:S(3,10,45)},
-    pull:{n:'Тяга верхнього блоку',tag:'lat pulldown',s:S(3,10,45)},
-    bench:{n:'Жим лежачи',s:S(3,10,30)},
-    bbic:{n:'Біцепс зі штангою',tag:'гнута штанга',s:S(3,10,20)},
-    incl:{n:'Жим лежачи під кутом',s:S(3,10,20)},
-    dbic:{n:'Біцепс з гантелями',s:S(3,10,15)},
-    tri:{n:'Трицепс на блоці',tag:'triceps pressdown',s:S(3,10,18)},
-    tri2:{n:'Трицепс за головою',s:[[10,7.5],[10,10],[10,10]]},
-    lrow:{n:'Нижня тяга',tag:'low row',s:S(3,10,45)},
-    lext:{n:'Розгинання ніг',tag:'налаштування 5, 1, 3',s:S(3,10,36)},
-    lcurl:{n:'Згинання ніг',tag:'leg curl',s:S(3,10,36)},
-    add:{n:'Зведення ніг',tag:'hip adductor, до середини',s:S(3,10,43)},
-    abd:{n:'Розведення ніг',tag:'hip abductor, назовні',s:S(3,15,50)},
-    glute:{n:'Сідничні',tag:'glute',s:S(3,10,32)},
-    hack:{n:'Присідання під кутом',tag:'hack squat',s:S(3,10,30)},
-    calfs:{n:'Ікри стоячи',s:S(3,10,50)},
-    calft:{n:'Ікри сидячи',s:S(3,15,30)},
-    plc:{n:'Згинання ніг лежачи',tag:'prone leg curl',s:S(3,10,32)},
-    lpress:{n:'Жим ногами',tag:'налаштування 4',s:S(3,15,59)}
+  /* ---------- програма тренувань ----------
+     Джерело правди — вкладки «Програма» і «Дні» в таблиці. Нижче — стартова програма,
+     з якої ці вкладки створюються, і яку апка використовує, доки таблицю не підключено. */
+  var PROG_HEAD=['Назва в журналі','Назва в апці','Тип','Дні','Підходи','Повтори','Вага','Примітка','ID'];
+  var DAYS_HEAD=['№','Назва','Опис','Колір'];
+  var BUILTIN={
+    days:[
+      ['1','Ноги','ноги, підтягування, бруси','#ff9900'],
+      ['2','Плечі та спина','плечі, спина, підтягування','#4a86e8'],
+      ['3','Груди та руки','груди, біцепс, трицепс','#9900ff']
+    ],
+    ex:[
+      ['elipse','Еліпс','кардіо','1, 2, 3','','','','15*10*7','ell'],
+      ['bike','Велосипед','кардіо','1, 2, 3','','','','20 min','bike'],
+      ['low back','Низ спини','сила','1, 2, 3','3','15','77','low back','lowb'],
+      ['back extension','Гіперекстензія','сила','1, 2, 3','3','15','77','back extension','bext'],
+      ['abdominal/прес лежачи','Прес лежачи','сила','1, 3','3','15','0','вага 0 = своя вага','abs'],
+      ['P14 abdominal crunch/пресс на станку, згинання','Скручування на тренажері','сила','1, 2, 3','3','15','59','P14','crunch'],
+      ['chin/підтягування','Підтягування','сила','1, 2','3','8','20','chin','chin'],
+      ['dip/бруси','Бруси','сила','1, 2','3','10','20','dip','dip'],
+      ['converting shoulder press/ жим вгору станок','Жим вгору на тренажері','сила','2','3','10','23','shoulder press','shp'],
+      ['seated row','Тяга сидячи','сила','2','2','10','36','seated row','srow'],
+      ['P22 rotary torso/боки, повороти','Повороти корпусу','сила','2','3','10','50','P22 rotary torso','rot'],
+      ['rear delt','Задня дельта','сила','2','3','10','39','rear delt','rear'],
+      ['P20 lateral raise/плечі','Махи в сторони','сила','2','3','10','45','P20 lateral raise','lat'],
+      ['P6 diverging seated row','Розвідна тяга сидячи','сила','2','3','10','45','P6 diverging seated row','drow'],
+      ['lat pulldown','Тяга верхнього блоку','сила','2','3','10','45','lat pulldown','pull'],
+      ['жим лежачи','Жим лежачи','сила','3','3','10','30','','bench'],
+      ['біцепс гнута штанга','Біцепс зі штангою','сила','3','3','10','20','гнута штанга','bbic'],
+      ['жим лежачи під кутом','Жим лежачи під кутом','сила','3','3','10','20','','incl'],
+      ['біцепс гантелі','Біцепс з гантелями','сила','3','3','10','15','','dbic'],
+      ['triceps pressdown','Трицепс на блоці','сила','3','3','10','18','triceps pressdown','tri'],
+      ['тріцепс за голову','Трицепс за головою','сила','3','3','10','7.5; 10; 10','','tri2'],
+      ['low row','Нижня тяга','сила','3','3','10','45','low row','lrow'],
+      ['leg extension  (5,1,3)','Розгинання ніг','сила','1','3','10','36','налаштування 5, 1, 3','lext'],
+      ['leg curl','Згинання ніг','сила','1','3','10','36','leg curl','lcurl'],
+      ['hip adductor / в середину ><','Зведення ніг','сила','1','3','10','43','hip adductor, до середини','add'],
+      ['hip abductor / назовні  <>','Розведення ніг','сила','1','3','15','50','hip abductor, назовні','abd'],
+      ['glute','Сідничні','сила','1','3','10','32','glute','glute'],
+      ['hack squat/присідання під кутом','Присідання під кутом','сила','1','3','10','30','hack squat','hack'],
+      ['ікри стоячи','Ікри стоячи','сила','1','3','10','50','','calfs'],
+      ['ікри сидячи','Ікри сидячи','сила','1','3','15','30','','calft'],
+      ['prone leg curl / лежачи','Згинання ніг лежачи','сила','1','3','10','32','prone leg curl','plc'],
+      ['leg press (4)','Жим ногами','сила','1','3','15','59','налаштування 4','lpress']
+    ]
   };
-  var DAYS={
-    A:{n:'Ноги',num:1,sub:'ноги, підтягування, бруси',ids:['ell','bike','lowb','bext','abs','crunch','chin','dip','lext','lcurl','add','abd','glute','hack','calfs','calft','plc','lpress']},
-    B:{n:'Плечі та спина',num:2,sub:'плечі, спина, підтягування',ids:['ell','bike','lowb','bext','crunch','chin','dip','shp','srow','rot','rear','lat','drow','pull']},
-    C:{n:'Груди та руки',num:3,sub:'груди, біцепс, трицепс',ids:['ell','bike','lowb','bext','abs','crunch','bench','bbic','incl','dbic','tri','tri2','lrow']}
-  };
-  // Останні дати тренувань кожного дня за таблицею
+  // Дати останніх тренувань до появи апки (поки історію не імпортовано)
   var SEED={A:'2026-10-25',B:'2026-10-27',C:'2026-10-16'};
 
-  // Резервна копія в Google Sheets: нове тренування = новий стовпець, вправа = рядок
-  var ROW={ell:2,bike:3,lowb:4,bext:5,abs:6,crunch:7,chin:8,dip:9,shp:10,srow:11,rot:12,rear:13,lat:14,drow:15,pull:16,bench:17,bbic:18,incl:19,dbic:20,tri:21,tri2:22,lrow:23,lext:24,lcurl:25,add:26,abd:27,glute:28,hack:29,calfs:30,calft:31,plc:32,lpress:33};
-  var ROWID={};Object.keys(ROW).forEach(function(k){ROWID[ROW[k]]=k});
-  DAYS.X={n:'Тренування',num:'·',sub:'без чіткого дня',ids:[]};
+  var S=function(n,r,w){var a=[];for(var i=0;i<n;i++)a.push([r,w]);return a};
+  var EX={}, DAYS={}, DAYKEYS=[], GROUPS={}, DAYCOL={}, DAYHEX={}, NAME2ID={};
+  function normName(t){return String(t==null?'':t).trim().toLowerCase().replace(/\s+/g,' ')}
+  function dayKey(num){var n=parseInt(num,10);return n>=1&&n<=26?String.fromCharCode(64+n):null}
+  // Список значень: «7.5; 10; 10» або «7.5, 10, 10» (кома з пробілом). «7,5» без пробілу — це 7.5
+  function parseList(v){
+    return String(v==null?'':v).split(/\s*;\s*|,\s+/).map(function(x){return parseFloat(String(x).trim().replace(',','.'))}).filter(function(x){return !isNaN(x)});
+  }
+  function hexOk(h){return /^#?[0-9a-f]{6}$/i.test(String(h||'').trim())}
+  function hexNorm(h){h=String(h).trim();return (h[0]==='#'?h:'#'+h).toLowerCase()}
+  function hexRgb(h){h=hexNorm(h);return {red:parseInt(h.slice(1,3),16)/255,green:parseInt(h.slice(3,5),16)/255,blue:parseInt(h.slice(5,7),16)/255}}
+  function exFromRow(r){
+    var j=String(r[0]||'').trim(),n=String(r[1]||'').trim()||j,type=normName(r[2]),note=String(r[7]||'').trim(),id=String(r[8]||'').trim();
+    if(!j&&!n)return null;
+    if(!id)id='n:'+normName(j||n);
+    var days=String(r[3]||'').split(/[^\d]+/).map(dayKey).filter(Boolean);
+    var d={n:n,j:j||n,days:days};
+    if(type.indexOf('кард')===0||type==='cardio'){d.t='cardio';d.sh=note||'';d.d=note||'готово'}
+    else{
+      var reps=parseList(r[5]),ws=parseList(r[6]);
+      var sets=parseInt(r[4],10)||Math.max(reps.length,ws.length)||3;
+      sets=Math.max(1,Math.min(10,sets));
+      d.s=[];
+      for(var i=0;i<sets;i++)d.s.push([reps.length?(reps[i]!=null?reps[i]:reps[reps.length-1]):10,ws.length?(ws[i]!=null?ws[i]:ws[ws.length-1]):0]);
+      if(note)d.tag=note;
+    }
+    return {id:id,d:d};
+  }
+  function applyProgram(p){
+    var dayRows=(p&&p.days&&p.days.length)?p.days:BUILTIN.days;
+    var exRows=(p&&p.ex&&p.ex.length)?p.ex:BUILTIN.ex;
+    Object.keys(EX).forEach(function(k){delete EX[k]});
+    Object.keys(DAYS).forEach(function(k){delete DAYS[k]});
+    Object.keys(NAME2ID).forEach(function(k){delete NAME2ID[k]});
+    DAYKEYS.length=0;
+    dayRows.forEach(function(r){
+      var k=dayKey(r[0]);if(!k||DAYS[k])return;
+      var col=hexOk(r[3])?hexNorm(r[3]):'#cccccc';
+      DAYS[k]={n:String(r[1]||'День '+r[0]).trim(),num:parseInt(r[0],10),sub:String(r[2]||'').trim(),ids:[],color:col};
+      DAYKEYS.push(k);
+    });
+    if(!DAYKEYS.length&&dayRows!==BUILTIN.days)return applyProgram({days:BUILTIN.days,ex:exRows});
+    DAYKEYS.sort(function(a,b){return DAYS[a].num-DAYS[b].num});
+    exRows.forEach(function(r){
+      var e=exFromRow(r);if(!e||EX[e.id])return;
+      EX[e.id]=e.d;NAME2ID[normName(e.d.j)]=e.id;
+      e.d.days.forEach(function(k){if(DAYS[k])DAYS[k].ids.push(e.id)});
+    });
+    DAYS.X={n:'Тренування',num:'·',sub:'без чіткого дня',ids:[],color:'#cccccc'};
+    // вправи, які є лише в одному дні, допомагають вгадати день старого стовпця
+    Object.keys(GROUPS).forEach(function(k){delete GROUPS[k]});
+    DAYKEYS.forEach(function(k){GROUPS[k]=DAYS[k].ids.filter(function(id){return EX[id].days.length===1})});
+    Object.keys(DAYS).forEach(function(k){DAYHEX[k]=DAYS[k].color;DAYCOL[k]=hexRgb(DAYS[k].color)});
+  }
+  applyProgram(null);
 
-  /* ---------- import history from the sheet (pure functions) ---------- */
-  var GROUPS={
-    A:['lext','lcurl','add','abd','glute','hack','calfs','calft','plc','lpress'],
-    B:['shp','srow','rot','rear','lat','drow','pull'],
-    C:['bench','bbic','incl','dbic','tri','tri2','lrow']
-  };
   function isoOf(y,m,d){return y+'-'+('0'+m).slice(-2)+'-'+('0'+d).slice(-2)}
   function parseDate(raw){
     var m=String(raw==null?'':raw).trim().match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
@@ -116,14 +165,13 @@
   }
   function classify(ex){
     var best='X',bs=0;
-    ['A','B','C'].forEach(function(k){
-      var sc=GROUPS[k].filter(function(id){return ex[id]}).length;
+    DAYKEYS.forEach(function(k){
+      var sc=(GROUPS[k]||[]).filter(function(id){return ex[id]}).length;
       if(sc>bs){bs=sc;best=k}
     });
     return best;
   }
   // Колір клітинки = виконано; біла чи без заливки = пропущено. Відтінок кольору підказує день
-  var DAYCOL={A:{red:1,green:0.6,blue:0},B:{red:0.2901961,green:0.5254902,blue:0.9098039},C:{red:0.6,green:0,blue:1},X:{red:0.8,green:0.8,blue:0.8}};
   function rgb(c){return c?{r:c.red||0,g:c.green||0,b:c.blue||0}:null}
   function isDone(c){var q=rgb(c);return !!q&&!(q.r>0.97&&q.g>0.97&&q.b>0.97)}
   function hueOf(c){
@@ -134,8 +182,9 @@
   }
   function dayOfColor(c){
     var h=hueOf(c);if(h==null)return null;
+    // найближчий за відтінком колір дня з вкладки «Дні»
     var best=null,bd=36;
-    [['A',36],['B',217],['C',276]].forEach(function(a){var dd=Math.abs(h-a[1]);dd=Math.min(dd,360-dd);if(dd<bd){bd=dd;best=a[0]}});
+    DAYKEYS.forEach(function(k){var a=hueOf(DAYCOL[k]);if(a==null)return;var dd=Math.abs(h-a);dd=Math.min(dd,360-dd);if(dd<bd){bd=dd;best=k}});
     return best;
   }
   // Відповідь скрипта: значення (як їх видно в таблиці) і кольори заливки у hex
@@ -150,8 +199,8 @@
     var head=values[0]||[],cols=head.length,out=[],bad=0;
     var rowIds=[];
     for(var r=1;r<values.length;r++){
-      var id=ROWID[r+1];
-      if(!id&&nameToId){var nm=values[r]&&values[r][0];if(nm)id=nameToId(nm)}
+      var nm=values[r]&&values[r][0],id=nm?NAME2ID[normName(nm)]:null;
+      if(!id&&nameToId&&nm)id=nameToId(nm);
       rowIds[r]=id||null;
     }
     var raw=[],fixed;
@@ -159,20 +208,20 @@
     fixed=fixDates(raw);
     var now=Date.now(),used={},skippedCells=0;
     for(var c2=1;c2<cols;c2++){
-      var ex={},votes={A:0,B:0,C:0};
+      var ex={},votes={};
       for(var r2=1;r2<values.length;r2++){
         var id2=rowIds[r2];if(!id2||!EX[id2])continue;
         var cell=values[r2]&&values[r2][c2];
         if(cell==null||String(cell).trim()==='')continue;
         var col=colors&&colors[r2]&&colors[r2][c2];
         if(colors&&!isDone(col)){skippedCells++;continue}
-        var dc=dayOfColor(col);if(dc)votes[dc]++;
+        var dc=dayOfColor(col);if(dc)votes[dc]=(votes[dc]||0)+1;
         var p=parseCell(id2,cell);
         if(p)ex[id2]=p;else bad++;
       }
       if(!Object.keys(ex).length)continue;
       var f=fixed[c2-1],day=null,vb=0;
-      ['A','B','C'].forEach(function(k){if(votes[k]>vb){vb=votes[k];day=k}});
+      DAYKEYS.forEach(function(k){if((votes[k]||0)>vb){vb=votes[k];day=k}});
       if(!day)day=classify(ex);
       var dids=DAYS[day].ids,extra=Object.keys(ex).filter(function(id){return dids.indexOf(id)<0});
       var key=f.iso+'_'+day,n2=2;
@@ -194,9 +243,30 @@
   try{sessions=JSON.parse(lsGet(LS)||'{}')||{}}catch(e){sessions={}}
   // Власні вправи: живуть в EX поряд зі стандартними
   try{custom=JSON.parse(lsGet(LSL)||'{}')||{}}catch(e){custom={}}
-  Object.keys(custom).forEach(function(id){if(custom[id]&&custom[id].n&&custom[id].s)EX[id]=custom[id];else delete custom[id]});
+  function mergeCustom(){
+    Object.keys(custom).forEach(function(id){
+      var d=custom[id];
+      if(!d||!d.n||!d.s){delete custom[id];return}
+      if(!d.j)d.j=d.n;
+      if(!d.days)d.days=[];
+      // вже є у вкладці «Програма» → далі береться звідти
+      if(d.synced&&(EX[id]||NAME2ID[normName(d.j)])){delete custom[id];return}
+      if(!EX[id]){EX[id]=d;NAME2ID[normName(d.j)]=id}
+    });
+    saveLib();
+  }
+  // Програма з таблиці, збережена на телефоні для офлайну
+  var LSP='gym.prog.v1';
+  try{var p0=JSON.parse(lsGet(LSP)||'null');if(p0&&p0.ex&&p0.ex.length)applyProgram(p0)}catch(e){}
   function saveLib(){lsSet(LSL,JSON.stringify(custom))}
-  function sIds(s){return DAYS[s.day].ids.concat(s.extra||[])}
+  mergeCustom();
+  function dayOf(k){return DAYS[k]||DAYS.X}
+  function sIds(s){
+    var ids=dayOf(s.day).ids.concat(s.extra||[]);
+    // вправи, які вже записані в тренуванні, показуємо, навіть якщо їх прибрали з програми
+    Object.keys(s.ex||{}).forEach(function(id){if(ids.indexOf(id)<0)ids.push(id)});
+    return ids;
+  }
   restSec=parseInt(lsGet(LSR)||'90',10)||90;
 
   function todayISO(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
@@ -210,12 +280,12 @@
   function saveLocal(){lsSet(LS,JSON.stringify(sessions))}
 
   function lastDate(day){
-    var d=SEED[day];
+    var d=SEED[day]||'2000-01-01';
     Object.keys(sessions).forEach(function(k){var s=sessions[k];if(s.day===day&&s.finished&&s.date>d)d=s.date});
     return d;
   }
   function nextDay(){
-    return ['A','B','C'].slice().sort(function(a,b){var x=lastDate(a),y=lastDate(b);return x<y?-1:x>y?1:0})[0];
+    return DAYKEYS.slice().sort(function(a,b){var x=lastDate(a),y=lastDate(b);return x<y?-1:x>y?1:0})[0];
   }
   function lastFinished(day){
     var best=null;
@@ -298,12 +368,11 @@
     return 'Помилка таблиці: '+((e&&e.message)||c);
   }
   // Виконані вправи фарбуємо кольором дня, пропущені лишаємо білими з планом
-  var DAYHEX={A:'#ff9900',B:'#4a86e8',C:'#9900ff',X:'#cccccc'};
   function payloadFor(s){
     var items=[];
     Object.keys(s.ex).forEach(function(id){
       var d=EX[id];if(!d)return;
-      items.push({row:ROW[id]||d.row||null,name:d.n,text:cellText(id,s.ex[id]),done:anyDone(s.ex[id])});
+      items.push({row:null,name:d.j||d.n,text:cellText(id,s.ex[id]),done:anyDone(s.ex[id])});
     });
     var taken=[];
     Object.keys(sessions).forEach(function(q){var o=sessions[q];if(o.key!==s.key&&o.sheetCol!=null)taken.push(o.sheetCol+1)});
@@ -341,16 +410,51 @@
       return false;
     });
   }
-  // Усе завершене, що ще не дійшло до таблиці, надсилаємо по черзі
-  var syncing=false;
+  // Нові вправи (після завершення тренування) і завершені тренування надсилаємо в таблицю по черзі
+  var syncing=false,syncAgain=false;
   function syncPending(){
-    if(syncing||!cfg.url||navigator.onLine===false)return;
+    if(syncing){syncAgain=true;return Promise.resolve()}
+    if(!cfg.url||navigator.onLine===false)return Promise.resolve();
+    var exs=Object.keys(custom).filter(function(id){var d=custom[id];return d.ready&&!d.synced});
     var list=Object.keys(sessions).map(function(k){return sessions[k]}).filter(function(s){return s.finished&&s.needSheet});
-    if(!list.length)return;
+    if(!exs.length&&!list.length)return Promise.resolve();
     syncing=true;
     var chain=Promise.resolve();
+    exs.forEach(function(id){chain=chain.then(function(){
+      var d=custom[id];if(!d)return;
+      var reps=d.s.map(function(x){return x[0]}),ws=d.s.map(function(x){return x[1]});
+      var same=function(a){return a.every(function(v){return v===a[0]})};
+      return api('addExercise',{row:[d.j,d.n,'сила','',String(d.s.length),same(reps)?String(reps[0]):reps.join('; '),same(ws)?String(ws[0]):ws.join('; '),'',id]})
+        .then(function(){d.synced=true;saveLib()},function(){});
+    })});
     list.forEach(function(s){chain=chain.then(function(){return backup(s)})});
-    chain.then(function(){syncing=false;if(view==='home')renderHome()},function(){syncing=false});
+    var done=function(){syncing=false;if(syncAgain){syncAgain=false;syncPending()}else if(view==='home')renderHome()};
+    return chain.then(done,done);
+  }
+  // Нові вправи йдуть у «Програму» разом із тренуванням
+  function sendToSheet(s){
+    if(!cfg.url){setBk(s.key,'wait',errText({code:'no_config'}));return}
+    if(navigator.onLine===false){setBk(s.key,'wait',errText({code:'offline'}));return}
+    syncPending();
+  }
+  // Програма з вкладок «Програма» і «Дні». Якщо вкладок ще немає, скрипт створює їх зі стартової програми
+  var progLoading=null;
+  function loadProgram(){
+    if(!cfg.url||navigator.onLine===false)return Promise.resolve(false);
+    if(progLoading)return progLoading;
+    progLoading=api('program').then(function(j){
+      if(j.missing)return api('initProgram',{progHead:PROG_HEAD,daysHead:DAYS_HEAD,days:BUILTIN.days,ex:BUILTIN.ex}).then(function(){return api('program')});
+      return j;
+    }).then(function(j){
+      progLoading=null;
+      if(!j||!j.ex||!j.ex.length)return false;
+      var p={days:j.days,ex:j.ex,at:Date.now()};
+      lsSet(LSP,JSON.stringify(p));
+      applyProgram(p);mergeCustom();
+      if(view==='home')renderHome();
+      return true;
+    },function(){progLoading=null;return false});
+    return progLoading;
   }
 
   /* ---------- import history (DOM + sheet) ---------- */
@@ -374,7 +478,7 @@
   function importHistory(){
     if(impState&&impState.state==='busy')return;
     setImp('busy','Читаю таблицю…');
-    api('read').then(function(j){
+    loadProgram().then(function(){return api('read')}).then(function(j){
         var g=gridFromApi(j);
         if(!g.values.length){setImp('err','Таблиця порожня або недоступна.');return}
         var r=buildImported(g.values,nameToId,g.colors);
@@ -422,11 +526,11 @@
     if(!cfg.url)h+='<button class="resume" data-act="cfg"><div><b>Підключіть таблицю</b><div class="tag">Щоб підтягнути історію й зберігати резервну копію</div></div><span>Налаштувати</span></button>';
     if(bkFocus&&sessions[bkFocus])h+='<div id="bkbox" class="bkbox" data-key="'+bkFocus+'">'+bkInner(sessions[bkFocus])+'</div>';
     if(open){
-      h+='<button class="resume" data-act="open" data-key="'+open.key+'"><div><b>Тренування триває</b><div class="tag">День '+DAYS[open.day].num+' · '+DAYS[open.day].n+' · '+setsDone(open)+' з '+setsTotal(open)+' підходів</div></div><span>Продовжити</span></button>';
+      h+='<button class="resume" data-act="open" data-key="'+open.key+'"><div><b>Тренування триває</b><div class="tag">День '+dayOf(open.day).num+' · '+dayOf(open.day).n+' · '+setsDone(open)+' з '+setsTotal(open)+' підходів</div></div><span>Продовжити</span></button>';
     }
     h+='<div class="hero"><div class="big">'+dd.num+'</div><div class="kick">Наступне за чергою</div><h2>'+dd.n+'</h2><div class="meta">'+dd.ids.length+' вправ · останнє '+fmtDate(lastDate(nd))+'</div><button class="cta" data-act="start" data-day="'+nd+'">Почати тренування</button></div>';
     h+='<div><div class="sec">Усі дні</div><div class="rows">';
-    ['A','B','C'].forEach(function(k){
+    DAYKEYS.forEach(function(k){
       var d=DAYS[k],l=lastDate(k);
       h+='<button class="row'+(k===nd?' next':'')+'" data-act="start" data-day="'+k+'"><div class="dn">'+d.num+'</div><div><div class="rn">'+d.n+'</div><div class="rs">'+d.sub+'</div></div><div class="rr">'+fmtDate(l)+'<br>'+ago(l)+'</div></button>';
     });
@@ -486,7 +590,7 @@
   }
   function renderWorkout(){
     view='workout';
-    var dd=DAYS[cur.day];
+    var dd=dayOf(cur.day);
     var h='<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="Назад">‹</button><h2>'+dd.n+'</h2><div class="cnt num" id="pc"></div></div><div class="bar"><i id="pb"></i></div></div><div class="list">';
     sIds(cur).forEach(function(id){h+=cardHTML(id)});
     h+='</div><button class="addx" data-act="padd">+ Додати вправу</button><button class="finish" data-act="finish">'+(cur.finished?'Зберегти зміни':'Завершити тренування')+'</button><p class="summary num" id="sum"></p><div id="bkbox" class="bkbox" data-key="'+cur.key+'">'+bkInner(cur)+'</div>';
@@ -502,7 +606,7 @@
 
   /* ---------- add exercise to the current workout ---------- */
   function dayNamesFor(id){
-    var r=[];['A','B','C'].forEach(function(k){if(DAYS[k].ids.indexOf(id)>=0)r.push(DAYS[k].n)});
+    var r=[];DAYKEYS.forEach(function(k){if(DAYS[k].ids.indexOf(id)>=0)r.push(DAYS[k].n)});
     return r;
   }
   function libList(){
@@ -517,7 +621,7 @@
     return {base:base,mine:mine};
   }
   function pkRow(id){
-    var d=EX[id],sub=d.custom?(d.s.length+'×'+d.s[0][0]+(d.s[0][1]?' · '+fw(d.s[0][1])+' кг':'')+(d.ready?'':' · з’явиться в усіх після завершення')):dayNamesFor(id).join(', ');
+    var d=EX[id],sub=d.custom?(d.s.length+'×'+d.s[0][0]+(d.s[0][1]?' · '+fw(d.s[0][1])+' кг':'')+(d.ready?'':' · з’явиться в усіх після завершення')):(dayNamesFor(id).join(', ')||'без дня в програмі');
     return '<button class="pkr" data-act="ppick" data-ex="'+id+'" data-n="'+esc(norm(d.n+' '+(d.tag||'')))+'"><span>'+esc(d.n)+'</span><small>'+esc(sub)+'</small></button>';
   }
   function openPicker(){
@@ -593,7 +697,7 @@
     var clash=Object.keys(EX).some(function(id){return norm(EX[id].n)===norm(nm)});
     if(clash){if(err)err.textContent='Вправа з такою назвою вже є. Знайдіть її у вкладці «З наявних».';return}
     var id='x'+Date.now().toString(36);
-    var d={n:nm,s:S(n,r,w),custom:1,from:cur.key,ready:false};
+    var d={n:nm,j:nm,days:[],s:S(n,r,w),custom:1,from:cur.key,ready:false};
     custom[id]=d;EX[id]=d;touchLib(id);
     addEx(id);closePicker();
   }
@@ -617,8 +721,11 @@
     m.textContent='Перевіряю…';
     api('ping').then(function(j){
       m.className='pkerr okc';
-      m.textContent='З’єднано з таблицею «'+(j.title||'')+'».';
-      syncPending();
+      m.textContent='З’єднано з таблицею «'+(j.title||'')+'». Завантажую програму…';
+      loadProgram().then(function(ok){
+        m.textContent='З’єднано з таблицею «'+(j.title||'')+'».'+(ok?' Програму завантажено з вкладки «Програма».':'');
+        syncPending();
+      });
     },function(e){m.textContent=errText(e)});
   }
 
@@ -707,10 +814,10 @@
       // нові вправи, створені в цьому тренуванні, стають доступними для всіх тренувань
       (fs.extra||[]).forEach(function(xid){var xd=custom[xid];if(xd&&xd.from===fs.key&&!xd.ready){xd.ready=true;touchLib(xid)}});
       fs.finished=fs.finished||Date.now();fs.needSheet=true;touch(fs);hideRest();
-      bkFocus=fs.key;renderHome();backup(fs);
+      bkFocus=fs.key;renderHome();sendToSheet(fs);
     }else if(act==='bk'){
       var bs=sessions[b.getAttribute('data-key')]||cur;
-      if(bs){bkFocus=bs.key;backup(bs)}
+      if(bs){bs.needSheet=true;saveLocal();bkFocus=bs.key;sendToSheet(bs)}
     }else if(act==='padd')openPicker();
     else if(act==='pclose')closePicker();
     else if(act==='ptab')pickTab(b.getAttribute('data-tab'));
@@ -748,9 +855,9 @@
 
   renderHome();
   // Офлайн-режим і запис того, що не дійшло до таблиці
-  window.addEventListener('online',syncPending);
+  window.addEventListener('online',function(){loadProgram().then(syncPending)});
   document.addEventListener('visibilitychange',function(){if(!document.hidden)syncPending()});
-  syncPending();
+  loadProgram().then(syncPending);
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}catch(e){}
   if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
 })();
