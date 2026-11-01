@@ -90,11 +90,14 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .plate.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .plate.on::after{border-color:color-mix(in srgb,var(--on-accent) 45%,transparent)}
 .plate.on small{color:var(--on-accent)}
-.cardio{display:flex;justify-content:space-between;align-items:center;gap:12px;border:2px solid var(--line);border-radius:6px;padding:12px 14px;background:var(--surface);text-align:left;width:100%}
-.cardio .cd{font-family:var(--f-display);font-weight:800;font-size:26px}
-.cardio .cs{color:var(--muted);font-weight:600}
+.cardio{display:flex;flex-direction:column;gap:10px;border:2px solid var(--line);border-radius:6px;padding:12px 14px;background:var(--surface)}
 .cardio.on{border-color:var(--done)}
-.cardio.on .cs{color:var(--done)}
+.cfr{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:10px}
+.cff{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cff span{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.cff input{width:100%;min-width:0;font-family:var(--f-display);font-weight:800;font-size:28px;background:none;border:0;border-bottom:1px solid var(--line);color:var(--ink);padding:0 0 2px;border-radius:0}
+.cdone{align-self:stretch;padding:10px;border-radius:4px;border:1px solid var(--line);font-weight:600;text-align:center}
+.cardio.on .cdone{background:var(--done);border-color:var(--done);color:var(--bg)}
 .finish{margin-top:20px;background:var(--ink);color:var(--bg);font-weight:600;font-size:18px;padding:15px;border-radius:4px;text-align:center;width:100%}
 .summary{color:var(--muted);font-size:14px;text-align:center;margin-top:10px}
 

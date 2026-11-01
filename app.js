@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  var APP_VERSION='9 · 1 лист. 2026';
+  var APP_VERSION='10 · 1 лист. 2026';
   /* ---------- програма тренувань ----------
      Джерело правди — вкладки «Програма» і «Дні» в таблиці. Нижче — стартова програма,
      з якої ці вкладки створюються, і яку апка використовує, доки таблицю не підключено. */
@@ -13,8 +13,8 @@
       ['3','Груди та руки','груди, біцепс, трицепс','#9900ff','груди, руки']
     ],
     ex:[
-      ['elipse','Еліпс','кардіо','1, 2, 3','','','','15*10*7','ell'],
-      ['bike','Велосипед','кардіо','1, 2, 3','','','','20 min','bike'],
+      ['elipse','Еліпс','кардіо','1, 2, 3','','хв; нахил; рівень','','15*10*7','ell'],
+      ['bike','Велосипед','кардіо','1, 2, 3','','хв','','20 min','bike'],
       ['low back','Низ спини','сила','1, 2, 3','3','15','77','low back','lowb'],
       ['back extension','Гіперекстензія','сила','1, 2, 3','3','15','77','back extension','bext'],
       ['abdominal/прес лежачи','Прес лежачи','сила','1, 3','3','15','0','вага 0 = своя вага','abs'],
@@ -61,13 +61,23 @@
   function hexOk(h){return /^#?[0-9a-f]{6}$/i.test(String(h||'').trim())}
   function hexNorm(h){h=String(h).trim();return (h[0]==='#'?h:'#'+h).toLowerCase()}
   function hexRgb(h){h=hexNorm(h);return {red:parseInt(h.slice(1,3),16)/255,green:parseInt(h.slice(3,5),16)/255,blue:parseInt(h.slice(5,7),16)/255}}
+  function cfNums(t){
+    return String(t==null?'':t).split('*').map(function(x){return parseFloat(String(x).replace(',','.').replace(/[^\d.]/g,''))}).filter(function(x){return !isNaN(x)});
+  }
   function exFromRow(r){
     var j=String(r[0]||'').trim(),n=String(r[1]||'').trim()||j,type=normName(r[2]),note=String(r[7]||'').trim(),id=String(r[8]||'').trim();
     if(!j&&!n)return null;
     if(!id)id='n:'+normName(j||n);
     var days=String(r[3]||'').split(/[^\d]+/).map(dayKey).filter(Boolean);
     var d={n:n,j:j||n,days:days};
-    if(type.indexOf('кард')===0||type==='cardio'){d.t='cardio';d.sh=note||'';d.d=note||'готово'}
+    if(type.indexOf('кард')===0||type==='cardio'){
+      // кардіо: у «Примітці» план як у журналі (15*10*7 або 20 min), у «Повторах» — назви полів через «;»
+      d.t='cardio';d.sh=note||'';d.d=note||'';
+      var nums=cfNums(note);d.cf=nums.length?nums:[20];
+      d.min=nums.length===1&&/min|хв/i.test(note);
+      var lab=String(r[5]||'').split(/\s*[;,]\s*/).map(function(x){return x.trim()}).filter(Boolean);
+      d.lab=lab.length>=d.cf.length?lab.slice(0,d.cf.length):({1:['хв'],2:['хв','нахил'],3:['хв','нахил','рівень']}[d.cf.length]||d.cf.map(function(_,i){return '#'+(i+1)}));
+    }
     else{
       var reps=parseList(r[5]),ws=parseList(r[6]);
       var sets=parseInt(r[4],10)||Math.max(reps.length,ws.length)||3;
@@ -195,7 +205,7 @@
     var t=String(raw==null?'':raw).trim();
     if(!t)return null;
     var d=EX[id];
-    if(d.t==='cardio')return [{done:true,txt:t}];
+    if(d.t==='cardio'){var cv=cfNums(t);return [cv.length?{done:true,txt:t,v:cv}:{done:true,txt:t}]}
     var noW=d.s[0][1]===0,out=[],ok=true;
     t.split(/[,;]/).forEach(function(p){
       p=p.trim();if(!p)return;
@@ -345,8 +355,8 @@
     var prev=lastFinished(day), ex={};
     DAYS[day].ids.forEach(function(id){
       var d=EX[id];
-      if(d.t==='cardio'){ex[id]=[{done:false}];return}
       var p=prev&&prev.ex[id];
+      if(d.t==='cardio'){ex[id]=[{done:false,v:p&&p[0]?cfVals(id,p[0]):d.cf.slice()}];return}
       ex[id]=d.s.map(function(x,i){var q=p&&(p[i]||p[p.length-1]);return {w:(q&&typeof q.w==='number')?q.w:x[1],done:false}});
     });
     var date=todayISO();
@@ -371,7 +381,7 @@
   // У таблицю пишемо виконані підходи; якщо вправу пропущено, лишаємо план (клітинка буде біла)
   function cellText(id,arr){
     var d=EX[id];
-    if(d.t==='cardio')return arr[0].txt||d.sh;
+    if(d.t==='cardio')return arr[0].v?cfText(id,arr[0].v):(arr[0].txt||d.sh);
     var all=!anyDone(arr),g=[];
     arr.forEach(function(x,i){
       if(!x.done&&!all)return;
@@ -665,13 +675,25 @@
     for(var i=0;i<arr.length;i++)if(!arr[i].done)return arr[i].w;
     return arr[arr.length-1].w;
   }
+  // Значення кардіо: те, що ввели в апці, або розібране з журналу, або план
+  function cfVals(id,e){
+    var d=EX[id];
+    if(e&&e.v&&e.v.length)return e.v.slice();
+    var t=e&&e.txt?cfNums(e.txt):[];
+    return t.length?t:(d&&d.cf?d.cf.slice():[]);
+  }
+  function cfText(id,v){var d=EX[id];return d&&d.min?fw(v[0]).replace(',','.')+' min':v.join('*')}
   function cardHTML(id){
     var d=EX[id],arr=cur.ex[id];
     if(!d||!arr)return '';
     if(d.t==='cardio'){
-      var on=arr[0].done;
-      return '<section class="ex'+(on?' fin':'')+'" id="c-'+id+'"><div class="exh"><div><h3>'+d.n+'</h3>'+(d.nt?'<p class="tag">'+d.nt+'</p>':'')+'</div></div>'+
-        '<button class="cardio'+(on?' on':'')+'" data-act="cardio" data-ex="'+id+'" aria-pressed="'+on+'"><span class="cd">'+esc(arr[0].txt||d.d)+'</span><span class="cs">'+(on?'Готово':'Позначити')+'</span></button></section>';
+      var on=arr[0].done,cv=cfVals(id,arr[0]),f='';
+      (d.lab||['хв']).forEach(function(l,i){
+        f+='<label class="cff" for="cf-'+id+'-'+i+'"><span>'+esc(l)+'</span><input id="cf-'+id+'-'+i+'" type="text" inputmode="decimal" autocomplete="off" value="'+(cv[i]!=null?fw(cv[i]):'')+'" data-ex="'+id+'" data-cf="'+i+'"></label>';
+      });
+      return '<section class="ex'+(on?' fin':'')+'" id="c-'+id+'"><div class="exh"><div><h3>'+esc(d.n)+'</h3></div></div>'+
+        '<div class="cardio'+(on?' on':'')+'"><div class="cfr">'+f+'</div>'+
+        '<button class="cdone" data-act="cardio" data-ex="'+id+'" aria-pressed="'+on+'">'+(on?'Готово ✓':'Позначити')+'</button></div></section>';
     }
     var all=arr.every(function(x){return x.done});
     var mixed=arr.some(function(x){return x.w!==arr[0].w});
@@ -767,7 +789,7 @@
   function addEx(id){
     if(!cur||!EX[id]||cur.ex[id])return;
     var d=EX[id],p=lastSetsFor(id);
-    if(d.t==='cardio')cur.ex[id]=[{done:false}];
+    if(d.t==='cardio')cur.ex[id]=[{done:false,v:p&&p[0]?cfVals(id,p[0]):d.cf.slice()}];
     else cur.ex[id]=d.s.map(function(x,i){return {w:(p&&p[i]&&typeof p[i].w==='number')?p[i].w:x[1],done:false}});
     cur.extra=(cur.extra||[]).concat([id]);
     touch(cur);
@@ -979,6 +1001,12 @@
     if(el.tagName!=='INPUT'||!cur)return;
     var id=el.getAttribute('data-ex'),v=parseFloat(String(el.value).replace(',','.'));
     if(!id||!cur.ex[id])return;
+    if(el.hasAttribute('data-cf')){
+      var ce=cur.ex[id][0],ci=parseInt(el.getAttribute('data-cf'),10),cv=cfVals(id,ce);
+      if(isNaN(v)||v<0){el.value=cv[ci]!=null?fw(cv[ci]):'';return}
+      cv[ci]=v;ce.v=cv;delete ce.txt;touch(cur);
+      return;
+    }
     if(isNaN(v)||v<0){el.value=fw(curW(cur.ex[id]));return}
     var arr=cur.ex[id];
     arr.forEach(function(x){if(!x.done)x.w=v});
