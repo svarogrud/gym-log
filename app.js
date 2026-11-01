@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  var APP_VERSION='12 · 1 лист. 2026';
+  var APP_VERSION='14 · 1 лист. 2026';
   /* ---------- програма тренувань ----------
      Джерело правди — вкладки «Програма» і «Дні» в таблиці. Нижче — стартова програма,
      з якої ці вкладки створюються, і яку апка використовує, доки таблицю не підключено. */
@@ -405,7 +405,7 @@
   }
 
   /* ---------- local storage ---------- */
-  function touch(s){s.updated=Date.now();saveLocal()}
+  function touch(s){s.updated=Date.now();if(s.draft)return;saveLocal()}
   function touchLib(id){var d=custom[id];if(!d)return;d.updated=Date.now();saveLib()}
 
   /* ---------- backup to Google Sheets ---------- */
@@ -688,7 +688,7 @@
     h+='<div><div class="sec">Усі дні</div><div class="rows">';
     DAYKEYS.forEach(function(k){
       var d=DAYS[k],l=lastDate(k);
-      h+='<button class="row'+(k===nd?' next':'')+'" data-act="start" data-day="'+k+'"><div class="dn">'+badge(d)+'</div><div><div class="rn">'+d.n+'</div><div class="rs">'+d.sub+'</div></div><div class="rr">'+fmtDate(l)+'<br>'+ago(l)+'</div></button>';
+      h+='<button class="row'+(k===nd?' next':'')+'" data-act="preview" data-day="'+k+'"><div class="dn">'+badge(d)+'</div><div><div class="rn">'+d.n+'</div><div class="rs">'+d.sub+'</div></div><div class="rr">'+fmtDate(l)+'<br>'+ago(l)+'</div></button>';
     });
     h+='</div></div>';
     h+='<div><div class="sec">Календар</div><div class="cal" id="cal">'+calHTML()+'</div></div>';
@@ -761,9 +761,11 @@
   function renderWorkout(){
     view='workout';
     var dd=dayOf(cur.day);
-    var h='<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="Назад">‹</button><h2>'+dd.n+'</h2><div class="cnt num" id="pc"></div><button class="back" data-act="ord" aria-label="Змінити порядок вправ">⇅</button></div><div class="bar"><i id="pb"></i></div></div><div class="list">';
+    var h='<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="Назад">‹</button><h2>'+dd.n+'</h2><div class="cnt num" id="pc"></div><button class="back" data-act="ord" aria-label="Змінити порядок вправ">⇅</button></div><div class="bar"><i id="pb"></i></div></div>'+
+      (cur.draft?'<div class="draft" id="draftb"><p>Перегляд. Тренування почнеться, коли натиснете кнопку або відмітите перший підхід.</p><button class="cta" data-act="begin">Почати тренування</button></div>':'')+
+      '<div class="list">';
     sIds(cur).forEach(function(id){h+=cardHTML(id)});
-    h+='</div><button class="addx" data-act="padd">+ Додати вправу</button><button class="finish" data-act="finish">'+(cur.finished?'Зберегти зміни':'Завершити тренування')+'</button><p class="summary num" id="sum"></p><div id="bkbox" class="bkbox" data-key="'+cur.key+'">'+bkInner(cur)+'</div>';
+    h+='</div><button class="addx" data-act="padd">+ Додати вправу</button><button class="finish" id="finb" data-act="finish"'+(cur.draft?' hidden':'')+'>'+(cur.finished?'Зберегти зміни':'Завершити тренування')+'</button><p class="summary num" id="sum"></p><div id="bkbox" class="bkbox" data-key="'+cur.key+'">'+bkInner(cur)+'</div>';
     app.innerHTML=h;
     progress();
     window.scrollTo(0,0);
@@ -923,14 +925,14 @@
     var ids=sIds(cur),h='<div class="pkp" role="dialog" aria-label="Порядок вправ"><div class="pkh"><h2>Порядок вправ</h2><button class="back" data-act="odone" aria-label="Готово">×</button></div><div class="olist">';
     ids.forEach(function(id,i){
       var d=EX[id];if(!d)return;
-      h+='<div class="orow'+(anyDone(cur.ex[id])?' odone':'')+'"><span class="on num">'+(i+1)+'</span><span class="onm">'+esc(d.n)+'</span>'+
+      h+='<div class="orow'+(anyDone(cur.ex[id])?' odone':'')+'" data-id="'+id+'"><span class="odrag" aria-hidden="true">≡</span><span class="on num">'+(i+1)+'</span><span class="onm">'+esc(d.n)+'</span>'+
         '<button class="ob" data-act="omv" data-ex="'+id+'" data-d="-1" aria-label="Вище"'+(i===0?' disabled':'')+'>↑</button>'+
         '<button class="ob" data-act="omv" data-ex="'+id+'" data-d="1" aria-label="Нижче"'+(i===ids.length-1?' disabled':'')+'>↓</button></div>';
     });
     h+='</div><button class="retry" data-act="ofreq">Як найчастіше виконую</button>'+
       (cur.day!=='X'?'<button class="cta" data-act="osave">Зберегти для наступних тренувань «'+esc(dayOf(cur.day).n)+'»</button>':'')+
       '<p class="pkerr" id="omsg" role="status"></p>'+
-      '<p class="sync">Без збереження зміни діють лише в цьому тренуванні. «Як найчастіше виконую» ставить нагору вправи, які ви робите найчастіше, а пропущені — вниз.</p></div>';
+      '<p class="sync">Перетягуйте вправи за ≡ або стрілками. Без збереження зміни діють лише в цьому тренуванні. «Як найчастіше виконую» ставить нагору вправи, які ви робите найчастіше, а пропущені — вниз.</p></div>';
     pk.innerHTML=h;pk.hidden=false;
   }
   function moveOrd(id,dir){
@@ -942,6 +944,44 @@
     var p2=pk.querySelector('.pkp');if(p2)p2.scrollTop=y;
     var btn=pk.querySelector('[data-act="omv"][data-ex="'+id+'"][data-d="'+dir+'"]');if(btn&&!btn.disabled)try{btn.focus({preventScroll:true})}catch(e){}
   }
+  function beginDraft(rerender){
+    if(!cur||!cur.draft)return;
+    delete cur.draft;cur.started=Date.now();sessions[cur.key]=cur;touch(cur);
+    var db=document.getElementById('draftb');if(db)db.remove();
+    var fb=document.getElementById('finb');if(fb)fb.hidden=false;
+    if(rerender)renderWorkoutKeep();
+  }
+  // перетягування за ручку ≡ у вікні «Порядок вправ»
+  pk.addEventListener('pointerdown',function(e){
+    var hd=e.target.closest&&e.target.closest('.odrag');if(!hd||!cur)return;
+    var row=hd.closest('.orow'),list=row.parentNode,rows=[].slice.call(list.querySelectorAll('.orow'));
+    var from=rows.indexOf(row),to=from,y0=e.clientY,rh=row.getBoundingClientRect().height,scroller=pk.querySelector('.pkp'),st0=scroller?scroller.scrollTop:0;
+    e.preventDefault();
+    try{hd.setPointerCapture(e.pointerId)}catch(er){}
+    row.classList.add('drag');
+    function mv(ev){
+      var dy=ev.clientY-y0;
+      row.style.transform='translateY('+dy+'px)';
+      to=Math.max(0,Math.min(rows.length-1,from+Math.round(dy/rh)));
+      rows.forEach(function(r,i){
+        if(r===row)return;
+        var sh=(from<to&&i>from&&i<=to)?-rh:(from>to&&i<from&&i>=to)?rh:0;
+        r.style.transform=sh?'translateY('+sh+'px)':'';
+      });
+    }
+    function up(){
+      hd.removeEventListener('pointermove',mv);hd.removeEventListener('pointerup',up);hd.removeEventListener('pointercancel',up);
+      if(to!==from){
+        var ids=rows.map(function(r){return r.getAttribute('data-id')}),id=ids.splice(from,1)[0];
+        ids.splice(to,0,id);
+        sIds(cur).forEach(function(x){if(ids.indexOf(x)<0)ids.push(x)});
+        cur.order=ids;touch(cur);
+      }
+      openOrder();
+      var p2=pk.querySelector('.pkp');if(p2)p2.scrollTop=st0;
+    }
+    hd.addEventListener('pointermove',mv);hd.addEventListener('pointerup',up);hd.addEventListener('pointercancel',up);
+  });
   function renderWorkoutKeep(){var y=window.scrollY;renderWorkout();window.scrollTo(0,y)}
 
   /* ---------- деталі вправи ---------- */
@@ -962,6 +1002,18 @@
     });
     return h;
   }
+  // анімація крутиться, поки відкрите вікно вправи
+  var animRaf=0;
+  function playAnim(id){
+    cancelAnimationFrame(animRaf);
+    var t0=performance.now(),PER=2600,reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+    (function step(now){
+      var el=document.getElementById('animv');
+      if(!el||pk.hidden)return;
+      el.innerHTML=GymAnim.frame(id,reduce?0.5:((now-t0)%PER)/PER);
+      if(!reduce)animRaf=requestAnimationFrame(step);
+    })(t0);
+  }
   function exHistory(id){
     return Object.keys(sessions).map(function(k){return sessions[k]})
       .filter(function(s){return s.finished&&s.ex&&s.ex[id]&&anyDone(s.ex[id])})
@@ -975,8 +1027,11 @@
     if(d.j&&normName(d.j)!==normName(d.n))sub.push(d.j);
     if(d.tag&&normName(d.tag)!==normName(d.j))sub.push(d.tag);
     if(sub.length)h+='<p class="sync">'+esc(sub.join(' · '))+'</p>';
-    var md=mediaHTML(d.media);
-    h+=md?'<div class="mbox">'+md+'</div>':'<p class="sync">Додайте посилання на фото тренажера, GIF або відео у вкладці «Програма», колонка «Медіа», і воно з’явиться тут.</p>';
+    var hasAnim=!!(window.GymAnim&&GymAnim.has(id)),md=mediaHTML(d.media);
+    var col=cur&&DAYS[cur.day]&&cur.day!=='X'?DAYS[cur.day].color:'var(--accent)';
+    if(hasAnim)h+='<div class="animbox" style="color:'+col+'"><div id="animv">'+GymAnim.frame(id,0)+'</div></div>';
+    if(md)h+='<div class="mbox">'+md+'</div>';
+    else h+='<p class="sync">'+(hasAnim?'Схема руху. ':'')+'Фото свого тренажера, GIF чи відео можна додати у вкладці «Програма», колонка «Медіа».</p>';
     h+='<a class="retry mlink" href="https://www.youtube.com/results?search_query='+encodeURIComponent(q)+'" target="_blank" rel="noopener">Знайти відео на YouTube</a>';
     var hist=exHistory(id);
     if(hist.length){
@@ -986,6 +1041,7 @@
     }
     h+='</div>';
     pk.innerHTML=h;pk.hidden=false;
+    if(hasAnim)playAnim(id);
     // зламане посилання: замість порожньої рамки — пояснення
     pk.querySelectorAll('img.media,video.media').forEach(function(el){el.addEventListener('error',function(){
       var p=document.createElement('p');p.className='sync';p.textContent='Не вдалося показати медіа за посиланням. Перевірте, що воно відкривається без входу.';el.replaceWith(p);
@@ -1053,12 +1109,19 @@
     var b=e.target.closest('[data-act]');
     if(!b||b.tagName==='INPUT')return;
     var act=b.getAttribute('data-act'),id=b.getAttribute('data-ex');
-    if(act==='start'){
+    // перший відмічений підхід у перегляді теж починає тренування
+    if(cur&&cur.draft&&(act==='set'||act==='cardio')){beginDraft(false)}
+    if(act==='start'||act==='preview'){
       var day=b.getAttribute('data-day'),key=todayISO()+'_'+day;
       var s=sessions[key];
-      if(!s){s=newSession(day);sessions[key]=s;touch(s)}
+      if(!s){
+        s=newSession(day);
+        // перегляд дня нічого не зберігає, поки не натиснете «Почати тренування»
+        if(act==='preview')s.draft=true;else{sessions[key]=s;touch(s)}
+      }
       openSession(s);
-    }else if(act==='open'){
+    }else if(act==='begin'){beginDraft(true)}
+    else if(act==='open'){
       var s2=sessions[b.getAttribute('data-key')];if(s2)openSession(s2);
     }else if(act==='home'){hideRest();renderHome()}
     else if(act==='set'){

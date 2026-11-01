@@ -167,6 +167,20 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .orow.odone .onm{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
 .ob{width:40px;height:36px;border:1px solid var(--line);border-radius:4px;font-size:18px;flex:none;background:var(--surface)}
 .ob:disabled{opacity:.3}
+.animbox{background:var(--surface);border-radius:8px;padding:6px;display:flex;justify-content:center}
+.animbox svg.anim{width:min(240px,70vw);height:auto;aspect-ratio:1;max-width:100%;display:block}
+svg.anim .b,svg.anim .b2{stroke:currentColor;stroke-width:4.2;stroke-linecap:round}
+svg.anim .b2{opacity:.45}
+svg.anim .hd{fill:currentColor}
+svg.anim .g{stroke:var(--muted);stroke-width:3;stroke-linecap:round}
+svg.anim .g2{stroke:var(--line);stroke-width:3;stroke-linecap:round}
+svg.anim .c{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:2 2;fill:none}
+svg.anim .pl{fill:none;stroke:var(--muted);stroke-width:3}
+.draft{display:flex;flex-direction:column;gap:10px;padding:12px 0 4px}
+.draft p{color:var(--muted);font-size:14px}
+.odrag{width:28px;height:36px;display:grid;place-items:center;font-size:20px;color:var(--muted);cursor:grab;touch-action:none;flex:none;user-select:none;-webkit-user-select:none}
+.orow{transition:transform .12s ease;background:var(--bg);position:relative}
+.orow.drag{transition:none;z-index:2;box-shadow:0 6px 18px rgb(0 0 0 / .25);border-radius:4px}
 .yr{font-family:var(--f-display);font-weight:800;font-size:22px;color:var(--muted);padding:16px 0 4px;border-bottom:1px solid var(--line)}
 .more{width:100%;padding:14px;font-weight:600;color:var(--accent);text-align:center}
 .imp{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px}
