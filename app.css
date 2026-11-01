@@ -247,6 +247,50 @@ svg.anim .pl{fill:none;stroke:var(--muted);stroke-width:3}
 .ex.st-done .ttl{color:var(--done)}
 .ex.st-skip{opacity:.55}
 .ex.st-skip .ttl{color:var(--muted)}
+/* вкладки внизу */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:15;display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);
+  padding:4px max(8px,env(safe-area-inset-right,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+.tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:11px;font-weight:600;color:var(--muted)}
+.tabs svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabs button.on{color:var(--accent)}
+body.hastabs{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+/* деталі вправи */
+.mbox2{background:var(--surface);border-radius:8px;padding:8px;display:flex;justify-content:center}
+svg.musc{width:100%;max-width:340px;height:auto;display:block}
+svg.musc .mb,svg.musc .mn{fill:var(--line)}
+svg.musc .mp{fill:currentColor}
+svg.musc .ms{fill:currentColor;opacity:.42}
+svg.musc .ml{fill:var(--muted);font-size:8px;text-anchor:middle}
+.mtxt{font-size:14px;line-height:1.5}
+.steps2,.warn{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.4}
+.warn li::marker{content:"⚠  ";color:var(--accent)}
+.tipx{font-size:14px;line-height:1.45;background:var(--surface);border-radius:6px;padding:10px 12px}
+.prs,.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:10px}
+.prs>div,.stats>div{background:var(--surface);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.prs span,.stats span{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.prs b,.stats b{font-family:var(--f-display);font-weight:800;font-size:26px;line-height:1.1}
+.prs small,.stats small{color:var(--muted);font-size:12px}
+svg.lchart{width:100%;height:auto;display:block;margin-top:6px}
+svg.lchart .gx{stroke:var(--line);stroke-width:1}
+svg.lchart .gl{fill:none;stroke:currentColor;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+svg.lchart .ga{fill:currentColor;opacity:.12}
+svg.lchart .gp{fill:currentColor}
+svg.lchart .gt{fill:var(--muted);font-size:10px;font-family:var(--f-body)}
+textarea.in{resize:vertical;font-family:var(--f-body)}
+select.in{appearance:auto}
+/* профіль */
+.wadd{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
+.wadd label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted)}
+.wadd .cta{grid-column:1/-1}
+.hrow .wdel{color:var(--muted);padding:0 4px;margin-left:8px}
+.pform label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted)}
+.ptxt{font-size:13px;line-height:1.45;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;min-height:260px}
+.dup{font-size:14px;line-height:1.45;color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:6px;padding:10px 12px}
+.hrow.sim{align-items:center}
+.simn{flex:1;min-width:0;text-align:left;display:flex;flex-direction:column;gap:2px}
+.simn b{font-weight:600;color:var(--ink)}
+.simn small{color:var(--muted);font-size:13px}
+.swp{flex:none;padding:7px 12px;font-size:14px}
 .yr{font-family:var(--f-display);font-weight:800;font-size:22px;color:var(--muted);padding:16px 0 4px;border-bottom:1px solid var(--line)}
 .more{width:100%;padding:14px;font-weight:600;color:var(--accent);text-align:center}
 .imp{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px}

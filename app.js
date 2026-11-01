@@ -1,11 +1,86 @@
 (function(){
   'use strict';
-  var APP_VERSION='27';
+  var APP_VERSION='28';
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
   try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
   var LOC=LANG==='en'?'en-GB':'uk-UA';
   var EN={
+"Схожі вправи": "Similar exercises",
+"У тому самому дні вже є вправи на ці м’язи": "The same day already has exercises for these muscles",
+"Це нормально, якщо так задумано, але легко перевантажити ті самі м’язи.": "Fine if intended, but it’s easy to overload the same muscles.",
+"Замінити": "Swap",
+"«Замінити» ставить схожу вправу замість цієї лише в цьому тренуванні — коли тренажер зайнятий чи зламаний.": "“Swap” puts the similar exercise in place of this one for this workout only — when the machine is busy or broken.",
+"Замінено на ": "Swapped for ",
+"AI-тренер": "AI coach",
+"ІМТ": "BMI",
+"Апка збере ваш профіль, поточну програму й підсумок останніх 8 тижнів у готовий текст. Скопіюйте його в будь-який AI-чат — отримаєте розбір і пропозиції.": "The app gathers your profile, current program and a summary of the last 8 weeks into ready-made text. Paste it into any AI chat to get an analysis and suggestions.",
+"Вага": "Weight",
+"Вагу записано": "Weight saved",
+"Введіть вагу в кілограмах, наприклад 82,5.": "Enter your weight in kilograms, for example 82.5.",
+"Видалити": "Delete",
+"Вік": "Age",
+"Графік": "Chart",
+"Дані зберігаються на телефоні та у вкладках «Профіль» і «Вага» вашої таблиці.": "Data is stored on this phone and in the “Профіль” and “Вага” tabs of your sheet.",
+"Дата": "Date",
+"Дата народження": "Date of birth",
+"Допоміжні": "Secondary",
+"Досвід": "Experience",
+"За 30 днів": "Last 30 days",
+"Записати": "Save",
+"Записуйте вагу раз на тиждень (зранку, натщесерце) — тут з’явиться графік.": "Log your weight once a week (morning, before eating) and a chart will appear here.",
+"Запит для AI": "AI prompt",
+"Зараз": "Now",
+"Збережено в таблицю.": "Saved to the sheet.",
+"Збережено на телефоні.": "Saved on this phone.",
+"Зберіть профіль, програму й останні тренування в один текст і вставте в будь-який AI-чат (Claude, ChatGPT, Gemini).": "Gather your profile, program and recent workouts into one text and paste it into any AI chat (Claude, ChatGPT, Gemini).",
+"Зріст, см": "Height, cm",
+"Мета": "Goal",
+"Можна дописати своє питання в кінці перед відправкою.": "You can add your own question at the end before sending.",
+"Моє": "Mine",
+"М’язи": "Muscles",
+"Налаштування тренажера": "Machine settings",
+"Наприклад: болить ліве коліно при глибоких присіданнях": "For example: left knee hurts in deep squats",
+"Наприклад: лікті не нижче 90°": "For example: elbows no lower than 90°",
+"Наприклад: сидіння 5, спинка 3": "For example: seat 5, back 3",
+"Не вдалося скопіювати — виділіть текст і скопіюйте вручну.": "Couldn’t copy — select the text and copy it manually.",
+"Нотатка": "Note",
+"Обмеження, травми": "Limitations, injuries",
+"Описи вправ поки що українською.": "Exercise descriptions are in Ukrainian for now.",
+"Основні": "Primary",
+"Поділитися": "Share",
+"Помилки й безпека": "Mistakes and safety",
+"Порада": "Tip",
+"Про мене": "About me",
+"Програма": "Program",
+"Прогрес": "Progress",
+"Профіль": "Profile",
+"Рекорд": "Best",
+"Скласти запит для AI": "Build AI prompt",
+"Скопійовано. Вставте в AI-чат.": "Copied. Paste it into an AI chat.",
+"Скопіювати": "Copy",
+"Стать": "Sex",
+"Талія, см": "Waist, cm",
+"Тренувань на тиждень": "Workouts per week",
+"Тут з’явиться рекомендована програма під вашу мету й рівень — щоб порівняти з поточною й поступово щось змінити. Для неї заповніть «Профіль».": "A recommended program for your goal and level will appear here, to compare with your current one and change gradually. Fill in your Profile for it.",
+"Хвилин на тренування": "Minutes per workout",
+"Як виконувати": "How to do it",
+"без змін": "no change",
+"кг з": "kg since",
+"не записано": "not logged",
+"повт.": "reps",
+"см": "cm",
+"Сила": "Strength",
+"М’язова маса": "Muscle mass",
+"Здоров’я й тонус": "Health & tone",
+"Схуднення": "Fat loss",
+"Витривалість": "Endurance",
+"Початківець (до 1 року)": "Beginner (under 1 year)",
+"Середній (1–3 роки)": "Intermediate (1–3 years)",
+"Досвідчений (3+ роки)": "Advanced (3+ years)",
+"Чоловік": "Male",
+"Жінка": "Female",
+"Розділи": "Sections",
 "Виконано": "Done",
 "Суперсет": "Superset",
 "чергуйте підходи, відпочинок — після обох": "alternate sets, rest after both",
@@ -196,7 +271,7 @@
   /* ---------- програма тренувань ----------
      Джерело правди — вкладки «Програма» і «Дні» в таблиці. Нижче — стартова програма,
      з якої ці вкладки створюються, і яку апка використовує, доки таблицю не підключено. */
-  var PROG_HEAD=['Назва в журналі','Назва в апці','Тип','Дні','Підходи','Повтори','Вага','Примітка','ID','Медіа','Name EN','Або','Суперсет'];
+  var PROG_HEAD=['Назва в журналі','Назва в апці','Тип','Дні','Підходи','Повтори','Вага','Примітка','ID','Медіа','Name EN','Або','Суперсет','Налаштування','Нотатка'];
   var DAYS_HEAD=['№','Назва','Опис','Колір','Іконка','Порядок','Name EN'];
   var BUILTIN={
     days:[
@@ -263,7 +338,7 @@
     if(!j&&!n)return null;
     if(!id)id='n:'+normName(j||n);
     var days=String(r[3]||'').split(/[^\d]+/).map(dayKey).filter(Boolean);
-    var d={n:n,j:j||n,days:days,media:String(r[9]||'').trim(),en:enName,alt:normName(r[11]),ss:normName(r[12])};
+    var d={n:n,j:j||n,days:days,media:String(r[9]||'').trim(),en:enName,alt:normName(r[11]),ss:normName(r[12]),setup:String(r[13]||'').trim(),pnote:String(r[14]||'').trim()};
     if(type.indexOf('кард')===0||type==='cardio'){
       // кардіо: у «Примітці» план як у журналі (15*10*7 або 20 min), у «Повторах» — назви полів через «;»
       d.t='cardio';d.sh=note||'';d.d=note||'';
@@ -745,7 +820,8 @@
     var list=Object.keys(sessions).map(function(k){return sessions[k]}).filter(function(s){return s.finished&&s.needSheet});
     var ords=Object.keys(dayOrd).filter(function(k){return dayOrd[k]&&dayOrd[k].pending});
     var exd=Object.keys(exDays).filter(function(id){return exDays[id].pending&&!(custom[id]&&!custom[id].synced)});
-    if(!exs.length&&!list.length&&!ords.length&&!exd.length)return Promise.resolve();
+    var pn=Object.keys(exNote).filter(function(id){return exNote[id].pending});
+    if(!exs.length&&!list.length&&!ords.length&&!exd.length&&!pn.length)return Promise.resolve();
     syncing=true;
     var chain=Promise.resolve();
     exs.forEach(function(id){chain=chain.then(function(){
@@ -759,6 +835,7 @@
     list.forEach(function(s){chain=chain.then(function(){return backup(s)})});
     ords.forEach(function(k){chain=chain.then(function(){return pushOrder(k)})});
     exd.forEach(function(id){chain=chain.then(function(){return pushExDays(id)})});
+    Object.keys(exNote).forEach(function(id){if(exNote[id].pending)chain=chain.then(function(){return pushPersonal(id)})});
     var done=function(){syncing=false;if(syncAgain){syncAgain=false;syncPending()}else if(view==='home')renderHome()};
     return chain.then(done,done);
   }
@@ -937,11 +1014,11 @@
     return Math.round(v);
   }
   function renderHome(){
-    view='home';cur=null;
+    view='home';cur=null;setTab('home');
     var nd=nextDay(), dd=DAYS[nd], today=todayISO();
     var open=null;
     Object.keys(sessions).forEach(function(k){var s=sessions[k];if(s.date===today&&!s.finished&&(!open||s.updated>open.updated))open=s});
-    var h='<div class="top"><div class="tt"><h1 class="brand">Gym Log</h1><div class="date">'+new Date().toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'long'})+T('</div></div><button class="gear" data-act="exlist" aria-label="Список вправ">☰</button><button class="gear" data-act="cfg" aria-label="Налаштування таблиці">⚙</button></div>');
+    var h='<div class="top"><div class="tt"><h1 class="brand">Gym Log</h1><div class="date">'+new Date().toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'long'})+T('</div></div><button class="gear" data-act="cfg" aria-label="Налаштування таблиці">⚙</button></div>');
     if(!cfg.url)h+=T('<button class="resume" data-act="cfg"><div><b>Підключіть таблицю</b><div class="tag">Щоб підтягнути історію й зберігати резервну копію</div></div><span>Налаштувати</span></button>');
     if(bkFocus&&sessions[bkFocus])h+='<div id="bkbox" class="bkbox" data-key="'+bkFocus+'">'+bkInner(sessions[bkFocus])+'</div>';
     if(open){
@@ -1031,7 +1108,7 @@
     if(sm)sm.textContent=d+T(' підходів · ')+volume(cur).toLocaleString(LOC)+T(' кг сумарно');
   }
   function renderWorkout(){
-    view='workout';
+    view='workout';setTab('workout');
     var dd=dayOf(cur.day);
     var h=T('<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="Назад">‹</button><h2>')+dd.n+T('</h2><div class="cnt num" id="pc"></div>')+(locked()?'<button class="back edt" data-act="edit" aria-label="'+T('Редагувати тренування')+'">✎</button>':
         '<button class="back" data-act="ord" aria-label="'+T('Змінити порядок вправ')+'">⇅</button>'+(cur.draft?'':'<button class="back fin" data-act="finish" aria-label="'+(cur.finished?T('Зберегти зміни'):T('Завершити тренування'))+'">✓</button>'))+'</div><div class="bar"><i id="pb"></i></div></div>'+
@@ -1351,6 +1428,175 @@
   }
   function renderWorkoutKeep(){var y=window.scrollY;renderWorkout();window.scrollTo(0,y)}
 
+  /* ---------- вкладки внизу ---------- */
+  var tabsEl=document.getElementById('tabs');
+  function setTab(v){
+    if(!tabsEl)return;
+    var on={home:1,exlist:1,plan:1,me:1}[v];
+    tabsEl.hidden=!on;document.body.classList.toggle('hastabs',!!on);
+    tabsEl.querySelectorAll('[data-t]').forEach(function(b){var a=b.getAttribute('data-t')===v;b.classList.toggle('on',a);b.setAttribute('aria-current',a?'page':'false')});
+  }
+  if(tabsEl){
+    tabsEl.querySelectorAll('[data-t]').forEach(function(b){b.querySelector('span').textContent=T(b.querySelector('span').textContent)});
+    tabsEl.addEventListener('click',function(e){
+      var b=e.target.closest('[data-t]');if(!b)return;
+      var t=b.getAttribute('data-t');hideRest();
+      if(t==='home')renderHome();else if(t==='exlist')renderExList();else if(t==='plan')renderPlan();else if(t==='me')renderMe();
+    });
+  }
+
+  /* ---------- профіль ---------- */
+  var LSPF='gym.profile.v1',PF={};
+  try{PF=JSON.parse(lsGet(LSPF)||'{}')||{}}catch(e){PF={}}
+  PF.weights=PF.weights||[];
+  var PF_FIELDS=[['birth','Дата народження'],['sex','Стать'],['height','Зріст, см'],['goal','Мета'],['exp','Досвід'],['days','Тренувань на тиждень'],['mins','Хвилин на тренування'],['limits','Обмеження, травми']];
+  var GOALS=[['','—'],['strength','Сила'],['muscle','М’язова маса'],['health','Здоров’я й тонус'],['fatloss','Схуднення'],['endurance','Витривалість']];
+  var EXPS=[['','—'],['beg','Початківець (до 1 року)'],['mid','Середній (1–3 роки)'],['adv','Досвідчений (3+ роки)']];
+  var SEXES=[['','—'],['m','Чоловік'],['f','Жінка']];
+  function optLabel(list,v){var o=list.filter(function(x){return x[0]===v})[0];return o?T(o[1]):''}
+  function saveProfileLocal(){PF.at=Date.now();PF.pending=true;lsSet(LSPF,JSON.stringify(PF));clearTimeout(saveProfileLocal.t);saveProfileLocal.t=setTimeout(pushProfile,1200)}
+  function ageOf(b){if(!b)return null;var t=new Date(b+'T12:00:00'),n=new Date(),a=n.getFullYear()-t.getFullYear();if(n.getMonth()<t.getMonth()||(n.getMonth()===t.getMonth()&&n.getDate()<t.getDate()))a--;return a>0&&a<120?a:null}
+  function lastWeight(){var w=PF.weights.slice().sort(function(a,b){return a.d<b.d?-1:1});return w[w.length-1]||null}
+  function weightAgo(days){
+    var lim=fromDayNum(dayNum(todayISO())-days),w=PF.weights.filter(function(x){return x.d<=lim}).sort(function(a,b){return a.d<b.d?-1:1});
+    return w[w.length-1]||null;
+  }
+  function pushProfile(){
+    if(!PF.pending||!cfg.url)return Promise.resolve(false);
+    var rows=PF_FIELDS.map(function(f){return [f[0],f[1],String(PF[f[0]]||'')]});
+    rows.push(['at','Оновлено',String(PF.at||'')]);
+    var ws=PF.weights.slice().sort(function(a,b){return a.d<b.d?-1:1}).map(function(x){return [x.d,String(x.kg),x.waist?String(x.waist):'']});
+    return api('saveProfile',{rows:rows,weights:ws}).then(function(){PF.pending=false;lsSet(LSPF,JSON.stringify(PF));return true},function(){return false});
+  }
+  function loadProfile(){
+    if(!cfg.url||navigator.onLine===false)return Promise.resolve(false);
+    return api('readProfile').then(function(j){
+      if(!j||!j.rows)return false;
+      var r={};(j.rows||[]).forEach(function(x){r[x[0]]=x[2]});
+      var remoteAt=parseInt(r.at,10)||0;
+      if(PF.pending||remoteAt<=(PF.at||0))return false;
+      PF_FIELDS.forEach(function(f){PF[f[0]]=r[f[0]]||''});
+      PF.weights=(j.weights||[]).map(function(x){return {d:String(x[0]),kg:parseFloat(String(x[1]).replace(',','.')),waist:x[2]?parseFloat(String(x[2]).replace(',','.')):''}}).filter(function(x){return /^\d{4}-\d\d-\d\d$/.test(x.d)&&!isNaN(x.kg)});
+      PF.at=remoteAt;PF.pending=false;lsSet(LSPF,JSON.stringify(PF));
+      if(view==='me')renderMe();
+      return true;
+    },function(){return false});
+  }
+  function sel(id,list,v){return '<select class="in" id="'+id+'">'+list.map(function(o){return '<option value="'+o[0]+'"'+(o[0]===(v||'')?' selected':'')+'>'+esc(T(o[1]))+'</option>'}).join('')+'</select>'}
+  function renderMe(){
+    view='me';cur=null;setTab('me');
+    var lw=lastWeight(),age=ageOf(PF.birth),h=parseFloat(PF.height),bmi=lw&&h?lw.kg/Math.pow(h/100,2):null;
+    var m1=weightAgo(30),m3=weightAgo(90);
+    var html='<div class="wh"><div class="l1"><h2>'+T('Профіль')+'</h2></div></div>';
+    html+='<div class="stats">'+
+      '<div><span>'+T('Вага')+'</span><b class="num">'+(lw?fw(lw.kg):'—')+'</b><small>'+(lw?T('кг')+' · '+fmtDate(lw.d):T('не записано'))+'</small></div>'+
+      '<div><span>'+T('За 30 днів')+'</span><b class="num">'+(lw&&m1?((lw.kg-m1.kg>0?'+':'')+fw(Math.round((lw.kg-m1.kg)*10)/10)):'—')+'</b><small>'+T('кг')+'</small></div>'+
+      '<div><span>'+T('Вік')+'</span><b class="num">'+(age||'—')+'</b><small>'+(bmi?T('ІМТ')+' '+fw(Math.round(bmi*10)/10):'&nbsp;')+'</small></div></div>';
+    var pts=PF.weights.slice().sort(function(a,b){return a.d<b.d?-1:1}).map(function(x){return {d:x.d,v:x.kg}});
+    html+='<div class="sec pks">'+T('Вага')+'</div>'+(pts.length>1?lineChart(pts,T('кг'),'var(--accent)'):'<p class="sync">'+T('Записуйте вагу раз на тиждень (зранку, натщесерце) — тут з’явиться графік.')+'</p>');
+    html+='<div class="wadd"><label for="pwkg">'+T('Вага, кг')+'<input class="in" id="pwkg" type="text" inputmode="decimal" value="'+(lw?fw(lw.kg):'')+'"></label>'+
+      '<label for="pwwaist">'+T('Талія, см')+'<input class="in" id="pwwaist" type="text" inputmode="decimal" placeholder="—"></label>'+
+      '<label for="pwdate">'+T('Дата')+'<input class="in" id="pwdate" type="date" value="'+todayISO()+'" max="'+todayISO()+'"></label>'+
+      '<button class="cta" data-act="wadd">'+T('Записати')+'</button></div><p class="pkerr" id="pwmsg" role="status"></p>';
+    var wl=PF.weights.slice().sort(function(a,b){return a.d<b.d?1:-1}).slice(0,8);
+    if(wl.length){
+      html+='<div class="hist">';
+      wl.forEach(function(x){html+='<div class="hrow"><span>'+fmtDate(x.d)+(x.d.slice(0,4)!==todayISO().slice(0,4)?' '+x.d.slice(0,4):'')+'</span><b class="num">'+fw(x.kg)+' '+T('кг')+(x.waist?' · '+fw(x.waist)+' '+T('см'):'')+'</b><button class="wdel" data-act="wdel" data-d="'+x.d+'" aria-label="'+T('Видалити')+'">✕</button></div>'});
+      html+='</div>';
+    }
+    html+='<div class="sec pks">'+T('Про мене')+'</div><div class="pkf pform">'+
+      '<div class="pkg two"><label for="pf-birth">'+T('Дата народження')+'<input class="in" id="pf-birth" type="date" value="'+esc(PF.birth||'')+'"></label>'+
+      '<label for="pf-sex">'+T('Стать')+sel('pf-sex',SEXES,PF.sex)+'</label></div>'+
+      '<div class="pkg two"><label for="pf-height">'+T('Зріст, см')+'<input class="in" id="pf-height" type="text" inputmode="numeric" value="'+esc(PF.height||'')+'"></label>'+
+      '<label for="pf-days">'+T('Тренувань на тиждень')+'<input class="in" id="pf-days" type="text" inputmode="numeric" value="'+esc(PF.days||'')+'"></label></div>'+
+      '<label for="pf-goal">'+T('Мета')+sel('pf-goal',GOALS,PF.goal)+'</label>'+
+      '<div class="pkg two"><label for="pf-exp">'+T('Досвід')+sel('pf-exp',EXPS,PF.exp)+'</label>'+
+      '<label for="pf-mins">'+T('Хвилин на тренування')+'<input class="in" id="pf-mins" type="text" inputmode="numeric" value="'+esc(PF.mins||'')+'"></label></div>'+
+      '<label for="pf-limits">'+T('Обмеження, травми')+'<textarea class="in" id="pf-limits" rows="2" placeholder="'+T('Наприклад: болить ліве коліно при глибоких присіданнях')+'">'+esc(PF.limits||'')+'</textarea></label>'+
+      '<p class="sync">'+T('Дані зберігаються на телефоні та у вкладках «Профіль» і «Вага» вашої таблиці.')+'</p></div>';
+    html+='<div class="sec pks">'+T('AI-тренер')+'</div><p class="sync">'+T('Зберіть профіль, програму й останні тренування в один текст і вставте в будь-який AI-чат (Claude, ChatGPT, Gemini).')+'</p><button class="cta" data-act="prompt">'+T('Скласти запит для AI')+'</button>';
+    app.innerHTML=html;window.scrollTo(0,0);
+  }
+  app.addEventListener('change',function(e){
+    if(view!=='me')return;
+    var id=e.target.id;if(id.indexOf('pf-')!==0)return;
+    PF[id.slice(3)]=String(e.target.value).trim();saveProfileLocal();
+    if(id==='pf-birth'||id==='pf-height'){var y=window.scrollY;renderMe();window.scrollTo(0,y)}
+  });
+
+  /* ---------- програма й запит для AI ---------- */
+  function renderPlan(){
+    view='plan';cur=null;setTab('plan');
+    var h='<div class="wh"><div class="l1"><h2>'+T('Програма')+'</h2></div></div>'+
+      '<p class="sync">'+T('Тут з’явиться рекомендована програма під вашу мету й рівень — щоб порівняти з поточною й поступово щось змінити. Для неї заповніть «Профіль».')+'</p>'+
+      '<div class="sec pks">'+T('Запит для AI')+'</div><p class="sync">'+T('Апка збере ваш профіль, поточну програму й підсумок останніх 8 тижнів у готовий текст. Скопіюйте його в будь-який AI-чат — отримаєте розбір і пропозиції.')+'</p>'+
+      '<button class="cta" data-act="prompt">'+T('Скласти запит для AI')+'</button>';
+    app.innerHTML=h;window.scrollTo(0,0);
+  }
+  function buildPrompt(){
+    var en=LANG==='en',L=function(uk,e){return en?e:uk};
+    var lw=lastWeight(),m3=weightAgo(90),age=ageOf(PF.birth);
+    var out=[];
+    out.push(L('Ти — досвідчений тренер із силових тренувань. Проаналізуй мої дані й журнал тренувань і допоможи покращити програму. Я тренуюсь у звичайній залі з тренажерами (JustGym).',
+               'You are an experienced strength coach. Analyse my data and training log and help me improve my program. I train in a regular commercial gym with machines (JustGym).'));
+    out.push('');out.push(L('## Про мене','## About me'));
+    if(age)out.push(L('- Вік: ','- Age: ')+age);
+    if(PF.sex)out.push(L('- Стать: ','- Sex: ')+optLabel(SEXES,PF.sex));
+    if(PF.height)out.push(L('- Зріст: ','- Height: ')+PF.height+' cm');
+    if(lw)out.push(L('- Вага: ','- Weight: ')+fw(lw.kg)+' kg'+(m3&&m3!==lw?L(' (3 місяці тому ',' (3 months ago ')+fw(m3.kg)+' kg)':'')+(lw.waist?L(', талія ',', waist ')+fw(lw.waist)+' cm':''));
+    if(PF.goal)out.push(L('- Мета: ','- Goal: ')+optLabel(GOALS,PF.goal));
+    if(PF.exp)out.push(L('- Досвід: ','- Experience: ')+optLabel(EXPS,PF.exp));
+    if(PF.days)out.push(L('- Тренувань на тиждень: ','- Sessions per week: ')+PF.days);
+    if(PF.mins)out.push(L('- Тривалість тренування: ','- Session length: ')+PF.mins+L(' хв',' min'));
+    out.push(L('- Обмеження, травми: ','- Limitations, injuries: ')+(PF.limits||L('немає','none')));
+    out.push('');out.push(L('## Поточна програма (підходи×повтори × вага)','## Current program (sets×reps × weight)'));
+    DAYKEYS.forEach(function(k){
+      var ids=orderFor(k),parts=[],seen={};
+      ids.forEach(function(id){
+        if(seen[id]||!EX[id])return;
+        var d=EX[id];
+        if(d.alt){var a=ids.filter(function(x){return EX[x]&&EX[x].alt===d.alt});a.forEach(function(x){seen[x]=1});parts.push(a.map(function(x){return EX[x].n}).join(L(' або ',' or '))+' ('+d.alt+')');return}
+        if(d.ss){var g=ids.filter(function(x){return EX[x]&&EX[x].ss===d.ss});g.forEach(function(x){seen[x]=1});parts.push(L('суперсет: ','superset: ')+g.map(function(x){return EX[x].n+' '+exSummary(x)}).join(' + '));return}
+        seen[id]=1;parts.push(d.n+' '+exSummary(id));
+      });
+      out.push(L('- День ','- Day ')+DAYS[k].num+' «'+DAYS[k].n+'»: '+parts.join('; '));
+    });
+    var since=fromDayNum(dayNum(todayISO())-56),recent=Object.keys(sessions).map(function(k){return sessions[k]}).filter(function(s){return s.finished&&s.date>=since});
+    out.push('');out.push(L('## Останні 8 тижнів','## Last 8 weeks'));
+    out.push(L('- Тренувань: ','- Workouts: ')+recent.length+L(' (у середньому ',' (avg ')+fw(Math.round(recent.length/8*10)/10)+L(' на тиждень)',' per week)'));
+    var perDay=DAYKEYS.map(function(k){return DAYS[k].n+': '+recent.filter(function(s){return s.day===k}).length}).join(', ');
+    out.push(L('- По днях: ','- By day: ')+perDay);
+    out.push(L('- Вправи (останній результат; вага на початку → зараз; виконано в скількох тренуваннях цього дня):','- Exercises (last result; weight then → now; done in how many sessions of its day):'));
+    var listed={};
+    DAYKEYS.forEach(function(k){orderFor(k).forEach(function(id){
+      if(listed[id]||!EX[id])return;listed[id]=1;
+      var d=EX[id],rel=recent.filter(function(s){return (d.days||[]).indexOf(s.day)>=0||(s.ex&&s.ex[id])});
+      var done=rel.filter(function(s){return s.ex&&s.ex[id]&&anyDone(s.ex[id])});
+      if(!rel.length)return;
+      var lastS=done.sort(function(a,b){return a.date<b.date?1:-1})[0];
+      var ser=d.t==='cardio'?[]:exSeries(id).filter(function(p){return p.d>=since});
+      out.push('  - '+d.n+': '+(lastS?cellText(id,lastS.ex[id]):L('не виконувалась','not done'))+
+        (ser.length>1&&ser[0].w!==ser[ser.length-1].w?'; '+fw(ser[0].w)+' → '+fw(ser[ser.length-1].w)+' kg':'')+
+        '; '+done.length+'/'+rel.length);
+    })});
+    out.push('');out.push(L('## Що потрібно','## What I need'));
+    out.push(L('1. Оціни баланс програми: які м’язи недопрацьовані чи перевантажені.','1. Assess the balance of my program: which muscle groups are under- or over-worked.'));
+    out.push(L('2. Запропонуй програму на ','2. Propose a program for ')+(PF.days||'3')+L(' дні на тиждень таблицею: вправа, підходи × повтори, стартова вага або RPE, відпочинок.',' days a week as a table: exercise, sets × reps, starting weight or RPE, rest.'));
+    out.push(L('3. План прогресії на 8–12 тижнів.','3. A progression plan for 8–12 weeks.'));
+    out.push(L('4. Що робити з вправами, які я часто пропускаю.','4. What to do about exercises I often skip.'));
+    out.push(L('5. Застереження щодо безпеки з урахуванням моїх обмежень.','5. Safety notes considering my limitations.'));
+    out.push(L('Відповідай українською, стисло й по суті.','Answer in English, concise and to the point.'));
+    return out.join('\n');
+  }
+  function openPrompt(){
+    var txt=buildPrompt();
+    pk.innerHTML='<div class="pkp" role="dialog" aria-label="'+T('Запит для AI')+'"><div class="pkh"><h2>'+T('Запит для AI')+'</h2><button class="back" data-act="pclose" aria-label="'+T('Закрити')+'">×</button></div>'+
+      '<textarea class="in ptxt" id="ptxt" rows="14" readonly>'+esc(txt)+'</textarea>'+
+      '<div class="steps"><button class="cta" data-act="pcopy">'+T('Скопіювати')+'</button>'+(navigator.share?'<button class="retry" data-act="pshare">'+T('Поділитися')+'</button>':'')+'</div>'+
+      '<p class="pkerr" id="pmsg" role="status"></p><p class="sync">'+T('Можна дописати своє питання в кінці перед відправкою.')+'</p></div>';
+    pk.hidden=false;
+  }
+
   /* ---------- екран «Вправи» ---------- */
   function exSummary(id){
     var d=EX[id];if(!d)return '';
@@ -1373,7 +1619,7 @@
   }
   var exOpen={};
   function renderExList(){
-    view='exlist';cur=null;
+    view='exlist';cur=null;setTab('exlist');
     var h='<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="'+T('Назад')+'">‹</button><h2>'+T('Вправи')+'</h2></div></div>'+
       '<input class="in" id="exq" type="search" placeholder="'+T('Пошук вправи')+'" autocomplete="off" aria-label="'+T('Пошук вправи')+'">';
     var seen={};
@@ -1449,6 +1695,120 @@
     if(!base)base=d.n;
     return base+(/[a-z]/i.test(base)?(d.t==='cardio'?' how to use':' proper form'):' техніка виконання');
   }
+  /* ---------- розширені деталі вправи ---------- */
+  var LSN='gym.exnote.v1',exNote={};
+  try{exNote=JSON.parse(lsGet(LSN)||'{}')||{}}catch(e){exNote={}}
+  function saveExNote(){lsSet(LSN,JSON.stringify(exNote))}
+  function personal(id,f){var o=exNote[id];if(o&&o[f]!=null&&(o.pending||(o.at||0)>progAt))return o[f];var d=EX[id];return d?(f==='setup'?d.setup:d.pnote)||'':''}
+  // найкраща вага за кожне тренування (виконані підходи) — для рекорду й графіка
+  function exSeries(id){
+    var pts=[];
+    Object.keys(sessions).forEach(function(k){
+      var s=sessions[k];if(!s.finished||!s.ex||!s.ex[id])return;
+      var best=null;
+      s.ex[id].forEach(function(x,i){if(x.done&&typeof x.w==='number'){var r=repsOf(id,i,x);if(!best||x.w>best.w||(x.w===best.w&&r>best.r))best={w:x.w,r:r}}});
+      if(best)pts.push({d:s.date,w:best.w,r:best.r});
+    });
+    return pts.sort(function(a,b){return a.d<b.d?-1:1});
+  }
+  function lineChart(pts,unit,color){
+    if(pts.length<2)return '';
+    var W=320,H=120,P=26,xs=pts.map(function(p){return dayNum(p.d)}),ys=pts.map(function(p){return p.v});
+    var x0=Math.min.apply(0,xs),x1=Math.max.apply(0,xs),y0=Math.min.apply(0,ys),y1=Math.max.apply(0,ys);
+    if(y1===y0){y1+=1;y0-=1}
+    var X=function(v){return P+(x1===x0?0:(v-x0)/(x1-x0))*(W-P-8)},Y=function(v){return 8+(1-(v-y0)/(y1-y0))*(H-P-8)};
+    var d=pts.map(function(p,i){return (i?'L':'M')+X(xs[i]).toFixed(1)+' '+Y(ys[i]).toFixed(1)}).join(' ');
+    var area=d+' L'+X(xs[xs.length-1]).toFixed(1)+' '+(H-P)+' L'+X(xs[0]).toFixed(1)+' '+(H-P)+' Z';
+    var last=pts[pts.length-1];
+    return '<svg class="lchart" viewBox="0 0 '+W+' '+H+'" style="color:'+color+'" role="img" aria-label="'+T('Графік')+'">'+
+      '<line x1="'+P+'" y1="'+(H-P)+'" x2="'+(W-8)+'" y2="'+(H-P)+'" class="gx"/>'+
+      '<text x="'+(P-4)+'" y="'+(Y(y1)+4)+'" class="gt" text-anchor="end">'+fw(y1)+'</text><text x="'+(P-4)+'" y="'+(Y(y0)+4)+'" class="gt" text-anchor="end">'+fw(y0)+'</text>'+
+      '<path d="'+area+'" class="ga"/><path d="'+d+'" class="gl"/>'+
+      '<circle cx="'+X(xs[xs.length-1])+'" cy="'+Y(ys[ys.length-1])+'" r="4" class="gp"/>'+
+      '<text x="'+P+'" y="'+(H-8)+'" class="gt">'+fmtDate(pts[0].d)+(pts[0].d.slice(0,4)!==last.d.slice(0,4)?' '+pts[0].d.slice(0,4):'')+'</text>'+
+      '<text x="'+(W-8)+'" y="'+(H-8)+'" class="gt" text-anchor="end">'+fmtDate(last.d)+'</text></svg>';
+  }
+  function infoMore(id){
+    var d=EX[id],G=window.GymInfo,inf=G&&G.get(id),h='',col=dayColorOf(id);
+    if(inf){
+      var nm=LANG==='en'?G.NAMES_EN:G.NAMES,list=function(a){return a.map(function(k){return nm[k]||k}).join(', ')};
+      h+='<div class="sec pks">'+T('М’язи')+'</div><div class="mbox2" style="color:'+col+'">'+(LANG==='en'?G.musclesSvg(inf.m,inf.m2).replace('спереду','front').replace('ззаду','back'):G.musclesSvg(inf.m,inf.m2))+'</div>'+
+        '<p class="mtxt"><b>'+T('Основні')+':</b> '+esc(list(inf.m))+(inf.m2.length?'<br><b>'+T('Допоміжні')+':</b> '+esc(list(inf.m2)):'')+'</p>';
+      h+='<div class="sec pks">'+T('Як виконувати')+'</div><ol class="steps2">'+inf.s.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ol>';
+      h+='<div class="sec pks">'+T('Помилки й безпека')+'</div><ul class="warn">'+inf.e.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul>';
+      if(inf.t)h+='<p class="tipx"><b>'+T('Порада')+':</b> '+esc(inf.t)+'</p>';
+      if(LANG==='en')h+='<p class="sync">'+T('Описи вправ поки що українською.')+'</p>';
+    }
+    if(d.t!=='cardio'){
+      var pts=exSeries(id);
+      if(pts.length){
+        var pr=pts.reduce(function(a,b){return b.w>a.w||(b.w===a.w&&b.r>a.r)?b:a});
+        var first=pts[0],last=pts[pts.length-1],diff=Math.round((last.w-first.w)*100)/100;
+        h+='<div class="sec pks">'+T('Прогрес')+'</div><div class="prs"><div><span>'+T('Рекорд')+'</span><b class="num">'+fw(pr.w)+' '+T('кг')+'</b><small>'+pr.r+' '+T('повт.')+' · '+fmtDate(pr.d)+'</small></div>'+
+          '<div><span>'+T('Зараз')+'</span><b class="num">'+fw(last.w)+' '+T('кг')+'</b><small>'+(diff?(diff>0?'+':'')+fw(diff)+' '+T('кг з')+' '+fmtDate(first.d)+(first.d.slice(0,4)!==last.d.slice(0,4)?' '+first.d.slice(0,4):''):T('без змін'))+'</small></div></div>'+
+          lineChart(pts.slice(-30).map(function(p){return {d:p.d,v:p.w}}),T('кг'),col);
+      }
+    }
+    h+=similarHTML(id);
+    h+='<div class="sec pks">'+T('Моє')+'</div><div class="pkf">'+
+      '<label for="exsetup">'+T('Налаштування тренажера')+'<input class="in" id="exsetup" type="text" autocomplete="off" placeholder="'+T('Наприклад: сидіння 5, спинка 3')+'" value="'+esc(personal(id,'setup'))+'" data-ex="'+id+'"></label>'+
+      '<label for="exnote">'+T('Нотатка')+'<textarea class="in" id="exnote" rows="2" placeholder="'+T('Наприклад: лікті не нижче 90°')+'" data-ex="'+id+'">'+esc(personal(id,'note'))+'</textarea></label>'+
+      '<p class="pkerr" id="exnmsg" role="status"></p></div>';
+    if(G)h+='<p class="sync">'+esc(LANG==='en'?'Warm up for 5–10 minutes before training. Make the first set light. Joint pain (not muscle fatigue) is a signal to stop.':G.GENERAL)+'</p>';
+    return h;
+  }
+  // Схожі вправи: спільні основні м'язи (з описів вправ)
+  function similar(id){
+    var G=window.GymInfo,a=G&&G.get(id);if(!a)return [];
+    var pa=a.m.filter(function(k){return k!=='cardio'}),cardio=a.m.indexOf('cardio')>=0;
+    return Object.keys(EX).filter(function(x){return x!==id&&G.get(x)}).map(function(x){
+      var b=G.get(x),pb=b.m.filter(function(k){return k!=='cardio'});
+      var sh=pa.filter(function(k){return pb.indexOf(k)>=0}).length,sh2=b.m2.filter(function(k){return pa.indexOf(k)>=0}).length;
+      if(cardio!==(b.m.indexOf('cardio')>=0))return null;
+      return sh?{id:x,score:sh*10+sh2,shared:pa.filter(function(k){return pb.indexOf(k)>=0})}:null;
+    }).filter(Boolean).sort(function(p,q){return q.score-p.score}).slice(0,6);
+  }
+  function similarHTML(id){
+    var list=similar(id);if(!list.length)return '';
+    var G=window.GymInfo,nm=LANG==='en'?G.NAMES_EN:G.NAMES,d=EX[id],h='';
+    // у тому самому дні вже є вправа на ці м'язи
+    var same=list.filter(function(o){return (EX[o.id].days||[]).some(function(k){return (d.days||[]).indexOf(k)>=0})});
+    h+='<div class="sec pks">'+T('Схожі вправи')+'</div>';
+    if(same.length)h+='<p class="dup">⚠ '+T('У тому самому дні вже є вправи на ці м’язи')+': '+esc(same.map(function(o){return EX[o.id].n}).join(', '))+'. '+T('Це нормально, якщо так задумано, але легко перевантажити ті самі м’язи.')+'</p>';
+    var canSwap=cur&&view==='workout'&&cur.ex[id]&&!locked();
+    h+='<div class="hist">';
+    list.forEach(function(o){
+      var dn=(EX[o.id].days||[]).map(function(k){return DAYS[k]?DAYS[k].n:''}).filter(Boolean).join(', ');
+      h+='<div class="hrow sim"><button class="simn" data-act="info" data-ex="'+o.id+'"><b>'+esc(EX[o.id].n)+'</b><small>'+esc(o.shared.map(function(k){return nm[k]||k}).join(', '))+(dn?' · '+esc(dn):'')+'</small></button>'+
+        (canSwap&&!cur.ex[o.id]?'<button class="retry swp" data-act="swap" data-ex="'+o.id+'" data-from="'+id+'">'+T('Замінити')+'</button>':'')+'</div>';
+    });
+    h+='</div>';
+    if(canSwap)h+='<p class="sync">'+T('«Замінити» ставить схожу вправу замість цієї лише в цьому тренуванні — коли тренажер зайнятий чи зламаний.')+'</p>';
+    return h;
+  }
+  function dayColorOf(id){
+    if(cur&&DAYS[cur.day]&&cur.day!=='X')return DAYS[cur.day].color;
+    var d=EX[id];return d&&d.days&&d.days[0]&&DAYS[d.days[0]]?DAYS[d.days[0]].color:'var(--accent)';
+  }
+  // налаштування й нотатка: на телефоні одразу, у таблицю (колонки «Налаштування», «Нотатка»), коли є зв’язок
+  function savePersonal(id,f,v){
+    var o=exNote[id]||(exNote[id]={});o[f]=v;o.pending=true;o.at=Date.now();saveExNote();
+    return pushPersonal(id);
+  }
+  function pushPersonal(id){
+    var o=exNote[id];if(!o||!o.pending||!cfg.url)return Promise.resolve(false);
+    var jobs=[];
+    if(o.setup!=null)jobs.push(api('setExerciseField',{id:id,field:'Налаштування',value:o.setup}));
+    if(o.note!=null)jobs.push(api('setExerciseField',{id:id,field:'Нотатка',value:o.note}));
+    return Promise.all(jobs).then(function(){o.pending=false;saveExNote();return true},function(){return false});
+  }
+  pk.addEventListener('change',function(e){
+    var el=e.target;if(el.id!=='exsetup'&&el.id!=='exnote')return;
+    var id=el.getAttribute('data-ex'),m=document.getElementById('exnmsg');
+    savePersonal(id,el.id==='exsetup'?'setup':'note',String(el.value).trim()).then(function(ok){
+      if(m){m.className='pkerr okc';m.textContent=ok?T('Збережено в таблицю.'):T('Збережено на телефоні.')}
+    });
+  });
   function exHistory(id){
     return Object.keys(sessions).map(function(k){return sessions[k]})
       .filter(function(s){return s.finished&&s.ex&&s.ex[id]&&anyDone(s.ex[id])})
@@ -1476,6 +1836,7 @@
     });
     h+='</div><p class="pkerr" id="exdmsg" role="status"></p>';
     if(cur&&view==='workout'&&!cur.ex[id]&&!locked())h+='<button class="cta" data-act="exadd" data-ex="'+id+'">'+T('Додати в це тренування')+'</button>';
+    h+=infoMore(id);
     var hist=exHistory(id);
     if(hist.length){
       h+=T('<div class="sec pks">Останні результати</div><div class="hist">');
@@ -1647,6 +2008,30 @@
     else if(act==='csave')saveSettings();
     else if(act==='upd')updateApp();
     else if(act==='exlist')renderExList();
+    else if(act==='prompt')openPrompt();
+    else if(act==='swap'){
+      var from=b.getAttribute('data-from');if(!cur||!cur.ex[from]||cur.ex[id])return;
+      var ord=sIds(cur),pos=ord.indexOf(from);
+      addEx(id);
+      // поточну прибираємо, якщо в ній ще нічого не відмічено
+      if(!anyDone(cur.ex[from])){delete cur.ex[from];cur.extra=(cur.extra||[]).filter(function(x){return x!==from});ord.splice(pos,1,id)}
+      else ord.splice(pos+1,0,id);
+      cur.order=ord.filter(function(x,i){return ord.indexOf(x)===i&&cur.ex[x]});touch(cur);
+      closePicker();renderWorkoutKeep();toast(T('Замінено на ')+EX[id].n);
+    }
+    else if(act==='pcopy'){
+      var ta=document.getElementById('ptxt'),pm=document.getElementById('pmsg');
+      var done2=function(ok){if(pm){pm.className='pkerr'+(ok?' okc':'');pm.textContent=ok?T('Скопійовано. Вставте в AI-чат.'):T('Не вдалося скопіювати — виділіть текст і скопіюйте вручну.')}};
+      try{navigator.clipboard.writeText(ta.value).then(function(){done2(true)},function(){ta.removeAttribute('readonly');ta.select();done2(false)})}catch(er){ta.select();done2(false)}
+    }
+    else if(act==='pshare'){try{navigator.share({text:document.getElementById('ptxt').value}).catch(function(){})}catch(er){}}
+    else if(act==='wadd'){
+      var kg=parseFloat(String(document.getElementById('pwkg').value).replace(',','.')),wa=parseFloat(String(document.getElementById('pwwaist').value).replace(',','.')),wd=document.getElementById('pwdate').value||todayISO(),wm=document.getElementById('pwmsg');
+      if(isNaN(kg)||kg<25||kg>350){wm.className='pkerr';wm.textContent=T('Введіть вагу в кілограмах, наприклад 82,5.');return}
+      PF.weights=PF.weights.filter(function(x){return x.d!==wd});PF.weights.push({d:wd,kg:Math.round(kg*10)/10,waist:isNaN(wa)?'':Math.round(wa*10)/10});
+      saveProfileLocal();renderMe();toast(T('Вагу записано'));
+    }
+    else if(act==='wdel'){var dd2=b.getAttribute('data-d');PF.weights=PF.weights.filter(function(x){return x.d!==dd2});saveProfileLocal();var y3=window.scrollY;renderMe();window.scrollTo(0,y3)}
     else if(act==='sws'){var swi=document.getElementById('sw'),sv=parseFloat(String(swi.value).replace(',','.'))||0;swi.value=fw(Math.max(0,Math.round((sv+parseFloat(b.getAttribute('data-v')))*100)/100))}
     else if(act==='ssave'){
       var si=parseInt(b.getAttribute('data-i'),10),arr2=cur.ex[id],nw=parseFloat(String(document.getElementById('sw').value).replace(',','.')),nr=parseInt(document.getElementById('sr').value,10);
@@ -1785,6 +2170,10 @@
     if(dragging||Date.now()-dragJustEnded<350||Math.abs(dx)<70||Math.abs(dx)<Math.abs(dy)*1.8||!pk.hidden)return;
     if(view==='home'&&dx>0)renderExList();
     else if(view==='exlist'&&dx<0)renderHome();
+    else if(view==='exlist'&&dx>0)renderPlan();
+    else if(view==='plan'&&dx<0)renderExList();
+    else if(view==='plan'&&dx>0)renderMe();
+    else if(view==='me'&&dx<0)renderPlan();
   },{passive:true});
   app.addEventListener('touchend',function(e){
     if(tx==null)return;
@@ -1795,7 +2184,7 @@
   document.addEventListener('visibilitychange',function(){if(!document.hidden){autoFinish();syncPending()}});
   Object.keys(sessions).forEach(function(k){var s=sessions[k];if(s.editing){delete s.editing;if(s._chg){delete s._chg;s.needSheet=true}}});
   autoFinish();
-  loadProgram().then(syncPending);
+  loadProgram().then(syncPending).then(loadProfile).then(pushProfile);
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}catch(e){}
   if('serviceWorker' in navigator){
     var hadCtl=!!navigator.serviceWorker.controller;

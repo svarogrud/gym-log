@@ -56,6 +56,12 @@ function doPost(e) {
         return json(saveDayOrder(ss, req));
       case 'setExerciseDays':
         return json(setExerciseDays(ss, req));
+      case 'setExerciseField':
+        return json(setExerciseField(ss, req));
+      case 'saveProfile':
+        return json(saveProfile(ss, req));
+      case 'readProfile':
+        return json(readProfile(ss));
       default:
         return json({ ok: false, error: 'bad_action' });
     }
@@ -231,6 +237,56 @@ function setExerciseDays(ss, req) {
     }
   }
   return { ok: false, error: 'no_exercise' };
+}
+
+/** Одне поле вправи («Налаштування» чи «Нотатка») у вкладці «Програма»; колонку створює, якщо її немає. */
+function setExerciseField(ss, req) {
+  const allowed = ['налаштування', 'нотатка'];
+  const field = String(req.field || '');
+  if (allowed.indexOf(norm(field)) < 0) return { ok: false, error: 'bad_field' };
+  const p = ss.getSheetByName(PROGRAM_NAME);
+  if (!p) return { ok: false, error: 'no_program' };
+  const v = p.getDataRange().getDisplayValues();
+  const head = (v[0] || []).map(norm);
+  const idCol = head.indexOf('id') >= 0 ? head.indexOf('id') : 8;
+  let col = head.indexOf(norm(field));
+  if (col < 0) {
+    col = head.length;
+    if (col + 1 > p.getMaxColumns()) p.insertColumnsAfter(p.getMaxColumns(), col + 1 - p.getMaxColumns());
+    p.getRange(1, col + 1).setValue(field).setFontWeight('bold');
+  }
+  for (let i = 1; i < v.length; i++) {
+    if (String(v[i][idCol]).trim() === String(req.id)) {
+      p.getRange(i + 1, col + 1).setNumberFormat('@').setValue(String(req.value || ''));
+      return { ok: true };
+    }
+  }
+  return { ok: false, error: 'no_exercise' };
+}
+
+/** Профіль і журнал ваги: вкладки «Профіль» (Поле | Назва | Значення) і «Вага» (Дата | Вага, кг | Талія, см). */
+function saveProfile(ss, req) {
+  const pr = ss.getSheetByName('Профіль') || ss.insertSheet('Профіль');
+  const rows = [['Поле', 'Назва', 'Значення']].concat((req.rows || []).map(r => [String(r[0]), String(r[1]), String(r[2])]));
+  pr.clearContents();
+  pr.getRange(1, 1, rows.length, 3).setNumberFormat('@').setValues(rows);
+  pr.getRange(1, 1, 1, 3).setFontWeight('bold');
+  pr.setFrozenRows(1);
+  const w = ss.getSheetByName('Вага') || ss.insertSheet('Вага');
+  const ws = [['Дата', 'Вага, кг', 'Талія, см']].concat((req.weights || []).map(r => [String(r[0]), String(r[1]), String(r[2] || '')]));
+  w.clearContents();
+  w.getRange(1, 1, ws.length, 3).setNumberFormat('@').setValues(ws);
+  w.getRange(1, 1, 1, 3).setFontWeight('bold');
+  w.setFrozenRows(1);
+  return { ok: true };
+}
+
+function readProfile(ss) {
+  const pr = ss.getSheetByName('Профіль'), w = ss.getSheetByName('Вага');
+  if (!pr) return { ok: true, rows: null };
+  const rows = pr.getDataRange().getDisplayValues().slice(1);
+  const weights = w ? w.getDataRange().getDisplayValues().slice(1).filter(r => r[0]) : [];
+  return { ok: true, rows: rows, weights: weights };
 }
 
 function sameDate(h, iso) {

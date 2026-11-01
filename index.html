@@ -21,6 +21,12 @@
 </head>
 <body>
 <div class="wrap" id="app"></div>
+<nav class="tabs" id="tabs" hidden aria-label="Розділи">
+  <button data-t="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg><span>Тренування</span></button>
+  <button data-t="exlist"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12h8M3 9h3v6H3zM18 9h3v6h-3zM6 7h2v10H6zM16 7h2v10h-2z"/></svg><span>Вправи</span></button>
+  <button data-t="plan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM9 8h6M9 12h6M9 16h4"/></svg><span>Програма</span></button>
+  <button data-t="me"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.5-7 8-7s7 2.5 8 7"/></svg><span>Профіль</span></button>
+</nav>
 <div class="pk" id="picker" hidden></div>
 <div class="rest" id="rest" hidden>
   <div class="rt num" id="restT">1:30</div>
@@ -30,6 +36,7 @@
   <button class="go" data-act="rs">Далі</button>
 </div>
 <script src="anim.js"></script>
+<script src="exinfo.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
