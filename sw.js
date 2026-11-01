@@ -1,7 +1,7 @@
 // Gym Log service worker.
 // App files: network first (always the newest version when online), cache as the offline fallback.
 // Fonts: cache first.
-const CACHE = 'gym-log-v32';
+const CACHE = 'gym-log-v33';
 const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'anim.js', 'exinfo.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 

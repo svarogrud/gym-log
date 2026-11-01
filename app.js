@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  var APP_VERSION='32';
+  var APP_VERSION='33';
   var NEED_SCRIPT=4; // має збігатися з SCRIPT_VERSION у apps-script/Code.gs
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
@@ -1763,7 +1763,7 @@
   var exOpen={new:true};
   function renderExList(){
     view='exlist';cur=null;setTab('exlist');
-    var h='<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="'+T('Назад')+'">‹</button><h2>'+T('Вправи')+'</h2></div></div>'+
+    var h='<div class="wh"><div class="l1"><h2>'+T('Вправи')+'</h2></div></div>'+
       '<input class="in" id="exq" type="search" placeholder="'+T('Пошук вправи')+'" autocomplete="off" aria-label="'+T('Пошук вправи')+'">';
     var seen={};
     var sug=Object.keys(EX).filter(function(id){return EX[id].sugOnly&&!(EX[id].days||[]).length});
