@@ -1,11 +1,12 @@
 (function(){
   'use strict';
-  var APP_VERSION='24';
+  var APP_VERSION='25';
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
   try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
   var LOC=LANG==='en'?'en-GB':'uk-UA';
   var EN={
+"Виконано": "Done",
 "Суперсет": "Superset",
 "чергуйте підходи, відпочинок — після обох": "alternate sets, rest after both",
 "Тепер: ": "Next: ",
@@ -993,7 +994,8 @@
       (d.lab||[T('хв')]).forEach(function(l,i){
         f+='<label class="cff" for="cf-'+id+'-'+i+'"><span>'+esc(l)+'</span><input id="cf-'+id+'-'+i+'" type="text" inputmode="decimal" autocomplete="off" value="'+(cv[i]!=null?fw(cv[i]):'')+'" data-ex="'+id+'" data-cf="'+i+'"'+(lk?' readonly':'')+'></label>';
       });
-      return '<section class="ex'+(on?' fin':'')+(lk?' lk':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id)+(!on&&!lk?'<button class="later" data-act="later" data-ex="'+id+T('">Пізніше</button>'):'')+'</div></div>'+
+      var cst=on?'done':(lk||cur.finished?'skip':'todo');
+      return '<section class="ex st-'+cst+(on?' fin':'')+(lk?' lk':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id,cst)+(!on&&!lk?'<button class="later" data-act="later" data-ex="'+id+T('">Пізніше</button>'):'')+'</div></div>'+
         '<div class="cardio'+(on?' on':'')+'"><div class="cfr">'+f+'</div>'+
         '<button class="cdone" data-act="cardio" data-ex="'+id+'" aria-pressed="'+on+'"'+(lk?' disabled':'')+'>'+(on?T('Готово ✓'):(lk?T('Пропущено'):T('Позначити')))+'</button></div></section>';
     }
@@ -1004,7 +1006,8 @@
       p+='<button class="plate'+(x.done?' on':'')+'" data-act="set" data-ex="'+id+'" data-i="'+i+'"'+(lk?' disabled':'')+' aria-pressed="'+x.done+T('" aria-label="Підхід ')+(i+1)+', '+repsOf(id,i,x)+T(' повторень"><b>')+repsOf(id,i,x)+'</b>'+(mixed?'<small>'+fw(x.w)+'</small>':'')+'</button>';
     });
     var doneW=arr.filter(function(x){return x.done}).map(function(x){return x.w}),shownW=doneW.length?doneW[0]:curW(arr);
-    return '<section class="ex'+(all?' fin':'')+(lk?' lk':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id)+(d.tag?'<p class="tag">'+d.tag+'</p>':'')+
+    var nd=arr.filter(function(q){return q.done}).length,st=all?'done':nd?'part':(lk||cur.finished?'skip':'todo');
+    return '<section class="ex st-'+st+(all?' fin':'')+(lk?' lk':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id,st,nd,arr.length)+(d.tag?'<p class="tag">'+d.tag+'</p>':'')+
       (!all&&!lk?'<button class="later" data-act="later" data-ex="'+id+T('">Пізніше</button>'):'')+
       (!lk&&(cur.extra||[]).indexOf(id)>=0&&!arr.some(function(x){return x.done})?'<button class="rmx" data-act="rmx" data-ex="'+id+T('">Прибрати з тренування</button>'):'')+'</div>'+
       (lk?'<div class="wt lockw"><b class="num">'+fw(shownW)+'</b><span>'+T('кг')+'</span></div></div>':'<div class="wt"><button data-act="wm" data-ex="'+id+T('" aria-label="Менше">−</button><label><input id="w-')+id+'" type="text" inputmode="decimal" value="'+fw(curW(arr))+'" data-ex="'+id+T('" aria-label="Вага, кг"><span>кг</span></label><button data-act="wp" data-ex="')+id+T('" aria-label="Більше">+</button></div></div>'))+
@@ -1383,10 +1386,16 @@
   }
 
   /* ---------- деталі вправи ---------- */
-  function titleBtn(id){
-    var d=EX[id];
-    return '<h3><button class="ttl" data-act="info" data-ex="'+id+'">'+esc(d.n)+'<span class="inf" aria-hidden="true">i</span></button></h3>';
+  // стан вправи: виконана ✓, почата (2/3), не почата ○, пропущена (у завершеному тренуванні)
+  function titleBtn(id,st,nd,tot){
+    var d=EX[id],mk='',pill='';
+    if(st==='done')mk='<span class="stm done" aria-label="'+T('Виконано')+'">✓</span>';
+    else if(st==='part'){mk='<span class="stm part" aria-hidden="true"></span>';pill='<span class="stp part num">'+nd+'/'+tot+'</span>'}
+    else if(st==='skip'){mk='<span class="stm skip" aria-hidden="true">–</span>';pill='<span class="stp skip">'+T('Пропущено')+'</span>'}
+    else if(st==='todo')mk='<span class="stm todo" aria-hidden="true"></span>';
+    return '<h3 class="exttl">'+mk+'<button class="ttl" data-act="info" data-ex="'+id+'">'+esc(d.n)+'<span class="inf" aria-hidden="true">i</span></button>'+pill+'</h3>';
   }
+
   // Посилання з колонки «Медіа»: картинка/GIF, відео-файл, YouTube або Google Drive (через пробіл можна кілька)
   function mediaHTML(raw){
     var h='';
