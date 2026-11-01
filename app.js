@@ -1,11 +1,23 @@
 (function(){
   'use strict';
-  var APP_VERSION='23';
+  var APP_VERSION='24';
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
   try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
   var LOC=LANG==='en'?'en-GB':'uk-UA';
   var EN={
+"Суперсет": "Superset",
+"чергуйте підходи, відпочинок — після обох": "alternate sets, rest after both",
+"Тепер: ": "Next: ",
+"Підхід ": "Set ",
+"виконано": "done",
+"Вага, кг": "Weight, kg",
+"Повтори": "Reps",
+",": ".",
+"Також для наступних невиконаних підходів": "Also for the following unfinished sets",
+"Зберегти": "Save",
+"Закрити": "Close",
+"Утримуйте підхід, щоб змінити його вагу чи повтори. − і + змінюють вагу наступних підходів.": "Hold a set to change its weight or reps. − and + change the weight of the following sets.",
 "Редагувати тренування": "Edit workout",
 "Тренування завершене": "Workout finished",
 "Пропущено": "Skipped",
@@ -183,7 +195,7 @@
   /* ---------- програма тренувань ----------
      Джерело правди — вкладки «Програма» і «Дні» в таблиці. Нижче — стартова програма,
      з якої ці вкладки створюються, і яку апка використовує, доки таблицю не підключено. */
-  var PROG_HEAD=['Назва в журналі','Назва в апці','Тип','Дні','Підходи','Повтори','Вага','Примітка','ID','Медіа','Name EN'];
+  var PROG_HEAD=['Назва в журналі','Назва в апці','Тип','Дні','Підходи','Повтори','Вага','Примітка','ID','Медіа','Name EN','Або','Суперсет'];
   var DAYS_HEAD=['№','Назва','Опис','Колір','Іконка','Порядок','Name EN'];
   var BUILTIN={
     days:[
@@ -192,14 +204,14 @@
       ['3','Груди та руки','груди, біцепс, трицепс','#9900ff','груди, руки','','Chest & arms']
     ],
     ex:[
-      ['elipse','Еліпс','кардіо','1, 2, 3','','хв; нахил; рівень','','15*10*7','ell','','Elliptical'],
-      ['bike','Велосипед','кардіо','1, 2, 3','','хв','','20 min','bike','','Bike'],
+      ['elipse','Еліпс','кардіо','1, 2, 3','','хв; нахил; рівень','','15*10*7','ell','','Elliptical','розминка',''],
+      ['bike','Велосипед','кардіо','1, 2, 3','','хв','','20 min','bike','','Bike','розминка',''],
       ['low back','Низ спини','сила','1, 2, 3','3','15','77','low back','lowb','','Lower back'],
       ['back extension','Гіперекстензія','сила','1, 2, 3','3','15','77','back extension','bext','','Back extension'],
       ['abdominal/прес лежачи','Прес лежачи','сила','1, 3','3','15','0','вага 0 = своя вага','abs','','Floor crunches'],
       ['P14 abdominal crunch/пресс на станку, згинання','Скручування на тренажері','сила','1, 2, 3','3','15','59','P14','crunch','','Ab crunch machine'],
-      ['chin/підтягування','Підтягування','сила','1, 2','3','8','20','chin','chin','','Pull-ups'],
-      ['dip/бруси','Бруси','сила','1, 2','3','10','20','dip','dip','','Dips'],
+      ['chin/підтягування','Підтягування','сила','1, 2','3','8','20','chin','chin','','Pull-ups','','підтягування+бруси'],
+      ['dip/бруси','Бруси','сила','1, 2','3','10','20','dip','dip','','Dips','','підтягування+бруси'],
       ['converting shoulder press/ жим вгору станок','Жим вгору на тренажері','сила','2','3','10','23','shoulder press','shp','','Shoulder press machine'],
       ['seated row','Тяга сидячи','сила','2','2','10','36','seated row','srow','','Seated cable row'],
       ['P22 rotary torso/боки, повороти','Повороти корпусу','сила','2','3','10','50','P22 rotary torso','rot','','Rotary torso'],
@@ -250,7 +262,7 @@
     if(!j&&!n)return null;
     if(!id)id='n:'+normName(j||n);
     var days=String(r[3]||'').split(/[^\d]+/).map(dayKey).filter(Boolean);
-    var d={n:n,j:j||n,days:days,media:String(r[9]||'').trim(),en:enName};
+    var d={n:n,j:j||n,days:days,media:String(r[9]||'').trim(),en:enName,alt:normName(r[11]),ss:normName(r[12])};
     if(type.indexOf('кард')===0||type==='cardio'){
       // кардіо: у «Примітці» план як у журналі (15*10*7 або 20 min), у «Повторах» — назви полів через «;»
       d.t='cardio';d.sh=note||'';d.d=note||'';
@@ -287,6 +299,7 @@
     });
     if(!DAYKEYS.length&&dayRows!==BUILTIN.days)return applyProgram({days:BUILTIN.days,ex:exRows});
     exRows.forEach(function(r){
+      if(r.length<13){var bi=BUILTIN.ex.filter(function(x){return x[8]===String(r[8]||'').trim()})[0];if(bi){r=r.slice();while(r.length<11)r.push('');r[11]=bi[11]||'';r[12]=bi[12]||''}}
       var e=exFromRow(r);if(!e||EX[e.id])return;
       EX[e.id]=e.d;NAME2ID[normName(e.d.j)]=e.id;
       e.d.days.forEach(function(k){if(DAYS[k])DAYS[k].ids.push(e.id)});
@@ -865,10 +878,46 @@
   }
 
   /* ---------- home ---------- */
+  /* ---------- групи вправ у тренуванні ----------
+     «Або» (alt): кілька вправ, з яких робиться одна (еліпс або велосипед) — одна картка з перемикачем.
+     «Суперсет» (ss): вправи чергуються підхід за підходом, відпочинок — після підходу всіх вправ групи. */
+  function grpMembers(s,id,kind){
+    var g=EX[id]&&EX[id][kind];if(!g)return [id];
+    var m=sIds(s).filter(function(x){return s.ex[x]&&EX[x]&&EX[x][kind]===g});
+    return m.length>1?m:[id];
+  }
+  function altChoice(s,id){
+    var m=grpMembers(s,id,'alt');if(m.length<2)return id;
+    var g=EX[id].alt;s.alt=s.alt||{};
+    if(s.alt[g]&&m.indexOf(s.alt[g])>=0)return s.alt[g];
+    var done=m.filter(function(x){return anyDone(s.ex[x])})[0];
+    return done||seasonPick(m,s.date);
+  }
+  // що найчастіше робили в цю пору року (±45 днів у будь-якому році)
+  function seasonPick(m,iso){
+    var doy=function(d){var t=new Date(d+'T12:00:00');return Math.floor((t-new Date(t.getFullYear(),0,0))/864e5)};
+    var me=doy(iso),score={},last={};
+    m.forEach(function(x){score[x]=0;last[x]=''});
+    Object.keys(sessions).forEach(function(k){
+      var q=sessions[k];if(!q.finished||!q.ex)return;
+      var dd=Math.abs(doy(q.date)-me);dd=Math.min(dd,365-dd);
+      m.forEach(function(x){if(q.ex[x]&&anyDone(q.ex[x])){if(dd<=45)score[x]++;if(q.date>last[x])last[x]=q.date}});
+    });
+    return m.slice().sort(function(a,b){return (score[b]-score[a])||(last[b]>last[a]?1:last[b]<last[a]?-1:0)})[0];
+  }
+  function countable(s){
+    var skip={};
+    Object.keys(s.ex).forEach(function(id){
+      if(!EX[id]||!EX[id].alt)return;
+      var m=grpMembers(s,id,'alt');if(m.length<2)return;
+      var c=altChoice(s,id);m.forEach(function(x){if(x!==c)skip[x]=1});
+    });
+    return Object.keys(s.ex).filter(function(id){return !skip[id]});
+  }
   function setsDone(s){
     var n=0;Object.keys(s.ex).forEach(function(id){s.ex[id].forEach(function(x){if(x.done)n++})});return n;
   }
-  function setsTotal(s){var n=0;Object.keys(s.ex).forEach(function(id){n+=s.ex[id].length});return n}
+  function setsTotal(s){var n=0;countable(s).forEach(function(id){n+=s.ex[id].length});return n}
   function volume(s){
     var v=0;
     Object.keys(s.ex).forEach(function(id){
@@ -959,7 +1008,7 @@
       (!all&&!lk?'<button class="later" data-act="later" data-ex="'+id+T('">Пізніше</button>'):'')+
       (!lk&&(cur.extra||[]).indexOf(id)>=0&&!arr.some(function(x){return x.done})?'<button class="rmx" data-act="rmx" data-ex="'+id+T('">Прибрати з тренування</button>'):'')+'</div>'+
       (lk?'<div class="wt lockw"><b class="num">'+fw(shownW)+'</b><span>'+T('кг')+'</span></div></div>':'<div class="wt"><button data-act="wm" data-ex="'+id+T('" aria-label="Менше">−</button><label><input id="w-')+id+'" type="text" inputmode="decimal" value="'+fw(curW(arr))+'" data-ex="'+id+T('" aria-label="Вага, кг"><span>кг</span></label><button data-act="wp" data-ex="')+id+T('" aria-label="Більше">+</button></div></div>'))+
-      '<div class="plates">'+p+'</div></section>';
+      '<div class="plates">'+p+'</div>'+(!lk&&!hintShown++?'<p class="hint">'+T('Утримуйте підхід, щоб змінити його вагу чи повтори. − і + змінюють вагу наступних підходів.')+'</p>':'')+'</section>';
   }
   function progress(){
     var d=setsDone(cur),t=setsTotal(cur);
@@ -978,13 +1027,38 @@
       (cur.finished&&cur.editing?'<div class="lockb edit"><p>'+T('Редагування. Зміни запишуться в таблицю, коли натиснете «Зберегти зміни» або вийдете.')+'</p></div>':'')+
       (cur.draft?T('<div class="draft" id="draftb"><p>Перегляд. Тренування почнеться, коли натиснете кнопку або відмітите перший підхід.</p><button class="cta" data-act="begin">Почати тренування</button></div>'):'')+
       '<div class="list">';
-    sIds(cur).forEach(function(id){h+=cardHTML(id)});
+    h+=listHTML();
     h+=(locked()?'</div><button class="finish" id="finb" hidden>':T('</div><button class="addx" data-act="padd">+ Додати вправу</button><button class="finish" id="finb" data-act="finish"')+(cur.draft?' hidden':'')+'>')+(cur.finished?T('Зберегти зміни'):T('Завершити тренування'))+'</button><p class="summary num" id="sum"></p><div id="bkbox" class="bkbox" data-key="'+cur.key+'">'+bkInner(cur)+'</div>';
     app.innerHTML=h;
     progress();
     window.scrollTo(0,0);
   }
+  var hintShown=0;
+  function listHTML(){
+    var h='',done={};hintShown=0;
+    sIds(cur).forEach(function(id){
+      if(done[id])return;
+      var alt=grpMembers(cur,id,'alt'),ss=grpMembers(cur,id,'ss');
+      if(alt.length>1){alt.forEach(function(x){done[x]=1});h+=altHTML(alt);return}
+      if(ss.length>1){ss.forEach(function(x){done[x]=1});h+=ssHTML(ss);return}
+      done[id]=1;h+=cardHTML(id);
+    });
+    return h;
+  }
+  function altHTML(m){
+    var c=altChoice(cur,m[0]),g=EX[m[0]].alt,lk=locked();
+    var h='<div class="grp altg" id="g-'+m[0]+'"><div class="grph"><span>'+esc(g.charAt(0).toUpperCase()+g.slice(1))+'</span><span class="seg">';
+    m.forEach(function(x){h+='<button class="sgb'+(x===c?' on':'')+'" data-act="alt" data-ex="'+x+'" data-g="'+m[0]+'"'+(lk?' disabled':'')+'>'+esc(EX[x].n)+'</button>'});
+    return h+'</span></div>'+cardHTML(c)+'</div>';
+  }
+  function ssHTML(m){
+    var h='<div class="grp ssg" id="g-'+m[0]+'"><div class="grph"><span>'+T('Суперсет')+'</span><span class="ssn">'+T('чергуйте підходи, відпочинок — після обох')+'</span></div>';
+    m.forEach(function(x){h+=cardHTML(x)});
+    return h+'</div>';
+  }
   function refreshCard(id){
+    var am=grpMembers(cur,id,'alt');
+    if(am.length>1){var g=document.getElementById('g-'+am[0]);if(g)g.outerHTML=altHTML(am);progress();return}
     var el=document.getElementById('c-'+id);
     if(el)el.outerHTML=cardHTML(id);
     progress();
@@ -1456,6 +1530,28 @@
     touch(cur);refreshCard(id);
   }
   var EDIT_ACTS={set:1,cardio:1,wm:1,wp:1,later:1,rmx:1,padd:1,ord:1,omv:1,ofreq:1,osave:1,exadd:1,ppick:1,pnew:1};
+  var lpFired=0,lpT=null,lpXY=null;
+  app.addEventListener('pointerdown',function(e){
+    var pl=e.target.closest&&e.target.closest('.plate');
+    if(!pl||pl.disabled||view!=='workout'||locked())return;
+    lpXY=[e.clientX,e.clientY];
+    clearTimeout(lpT);
+    lpT=setTimeout(function(){lpFired=Date.now();try{navigator.vibrate&&navigator.vibrate(15)}catch(er){}openSetEditor(pl.getAttribute('data-ex'),parseInt(pl.getAttribute('data-i'),10))},480);
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(t){app.addEventListener(t,function(){clearTimeout(lpT)})});
+  app.addEventListener('pointermove',function(e){if(lpXY&&(Math.abs(e.clientX-lpXY[0])>10||Math.abs(e.clientY-lpXY[1])>10))clearTimeout(lpT)});
+  app.addEventListener('contextmenu',function(e){if(e.target.closest&&e.target.closest('.plate'))e.preventDefault()});
+  function openSetEditor(id,i){
+    var d=EX[id],x=cur&&cur.ex[id]&&cur.ex[id][i];if(!d||!x)return;
+    var h='<div class="pkp" role="dialog" aria-label="'+esc(d.n)+'"><div class="pkh"><h2>'+esc(d.n)+'</h2><button class="back" data-act="pclose" aria-label="'+T('Закрити')+'">×</button></div>'+
+      '<p class="sync">'+T('Підхід ')+(i+1)+(x.done?' · '+T('виконано'):'')+'</p><div class="pkf">'+
+      '<div class="pkg two"><label for="sw">'+T('Вага, кг')+'<input class="in" id="sw" type="text" inputmode="decimal" value="'+fw(x.w)+'"></label>'+
+      '<label for="sr">'+T('Повтори')+'<input class="in" id="sr" type="number" inputmode="numeric" min="1" max="100" value="'+repsOf(id,i,x)+'"></label></div>'+
+      '<div class="steps">'+['-5','-2.5','+2.5','+5'].map(function(v){return '<button class="retry" data-act="sws" data-v="'+v+'">'+v.replace('.',T(','))+'</button>'}).join('')+'</div>'+
+      '<label class="chk"><input type="checkbox" id="snext" checked> '+T('Також для наступних невиконаних підходів')+'</label>'+
+      '<button class="cta" data-act="ssave" data-ex="'+id+'" data-i="'+i+'">'+T('Зберегти')+'</button></div></div>';
+    pk.innerHTML=h;pk.hidden=false;
+  }
   function onClick(e){
     if(e.target.closest&&e.target.closest('.odrag'))return;
     var lb=e.target.closest&&e.target.closest('[data-act]');
@@ -1486,12 +1582,26 @@
     }
     else if(act==='edit'){if(cur&&cur.finished){cur.editing=true;renderWorkoutKeep()}}
     else if(act==='set'){
+      if(Date.now()-lpFired<700)return;
       var i=parseInt(b.getAttribute('data-i'),10),x=cur.ex[id][i];
       x.done=!x.done;if(x.done)x.t=Date.now();else delete x.t;touch(cur);refreshCard(id);
       var focusSel='#c-'+id+' .plate[data-i="'+i+'"]';
       var nb=document.querySelector(focusSel);if(nb&&document.activeElement!==nb)try{nb.focus({preventScroll:true})}catch(er){}
-      if(x.done&&setsDone(cur)<setsTotal(cur))startRest();
-      else if(!x.done)hideRest();
+      if(x.done){
+        // суперсет: поки в іншій вправі групи цей підхід не зроблено — без відпочинку, одразу до неї
+        var sm=grpMembers(cur,id,'ss'),nextEx=sm.filter(function(y){return y!==id&&cur.ex[y][i]&&!cur.ex[y][i].done})[0];
+        if(sm.length>1&&nextEx){hideRest();toast(T('Тепер: ')+EX[nextEx].n)}
+        else if(setsDone(cur)<setsTotal(cur))startRest();
+      }
+      else hideRest();
+    }
+    else if(act==='alt'){
+      var gfirst=b.getAttribute('data-g'),ag=EX[id].alt;
+      cur.alt=cur.alt||{};cur.alt[ag]=id;
+      // обрана вправа одна: відмітки з інших варіантів знімаються
+      grpMembers(cur,id,'alt').forEach(function(y){if(y!==id)cur.ex[y].forEach(function(q){q.done=false;delete q.t})});
+      touch(cur);
+      var gEl=document.getElementById('g-'+gfirst);if(gEl)gEl.outerHTML=altHTML(grpMembers(cur,id,'alt'));progress();
     }else if(act==='cardio'){
       var c=cur.ex[id][0];c.done=!c.done;if(c.done)c.t=Date.now();else delete c.t;touch(cur);refreshCard(id);
     }else if(act==='wm')stepWeight(id,-1);
@@ -1519,6 +1629,14 @@
     else if(act==='csave')saveSettings();
     else if(act==='upd')updateApp();
     else if(act==='exlist')renderExList();
+    else if(act==='sws'){var swi=document.getElementById('sw'),sv=parseFloat(String(swi.value).replace(',','.'))||0;swi.value=fw(Math.max(0,Math.round((sv+parseFloat(b.getAttribute('data-v')))*100)/100))}
+    else if(act==='ssave'){
+      var si=parseInt(b.getAttribute('data-i'),10),arr2=cur.ex[id],nw=parseFloat(String(document.getElementById('sw').value).replace(',','.')),nr=parseInt(document.getElementById('sr').value,10);
+      if(isNaN(nw)||nw<0)nw=arr2[si].w;if(!(nr>0))nr=repsOf(id,si,arr2[si]);
+      var nx=document.getElementById('snext').checked;
+      arr2.forEach(function(q,j){if(j===si||(nx&&j>si&&!q.done)){q.w=nw;if(j===si||q.r!=null||nr!==repsOf(id,j,q))q.r=nr}});
+      touch(cur);closePicker();refreshCard(id);
+    }
     else if(act==='exday'){
       var dk=b.getAttribute('data-day'),ed=EX[id];if(!ed)return;
       var keys=(ed.days||[]).slice(),ix=keys.indexOf(dk);
@@ -1543,7 +1661,9 @@
     else if(act==='lang'){try{localStorage.setItem('gym.lang.v1',b.getAttribute('data-l'))}catch(e){}location.reload()}
     else if(act==='info')openInfo(id);
     else if(act==='later'){
-      // тренажер зайнятий: вправа йде в кінець списку цього тренування
+      // тренажер зайнятий: вправа (або вся її група) йде в кінець списку цього тренування
+      var grpL=grpMembers(cur,id,'ss').length>1?grpMembers(cur,id,'ss'):grpMembers(cur,id,'alt');
+      if(grpL.length>1){cur.order=sIds(cur).filter(function(x){return grpL.indexOf(x)<0}).concat(grpL);touch(cur);renderWorkoutKeep();return}
       cur.order=sIds(cur).filter(function(x){return x!==id}).concat([id]);touch(cur);
       var el=document.getElementById('c-'+id),lst=document.querySelector('.list');
       if(el&&lst){lst.appendChild(el);el.outerHTML=cardHTML(id)}
