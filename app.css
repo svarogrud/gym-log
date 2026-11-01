@@ -212,6 +212,17 @@ svg.anim .pl{fill:none;stroke:var(--muted);stroke-width:3}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{padding:8px 12px;border-radius:999px;border:1.5px solid var(--dc);color:var(--ink);font-weight:600;font-size:14px}
 .chip.on{background:var(--dc);color:#fff}
+.lockb{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 0 2px}
+.lockb p{color:var(--muted);font-size:14px}
+.lockb.edit p{color:var(--accent)}
+.wh .l1 .back.edt{font-size:18px}
+.ex.lk .plate{cursor:default}
+.ex.lk .plate:not(.on){opacity:.45}
+.lockw{gap:4px}
+.lockw b{font-family:var(--f-display);font-weight:800;font-size:28px}
+.lockw span{color:var(--muted);font-size:13px}
+.ex.lk .cff input{border-bottom-color:transparent}
+.cdone:disabled{opacity:1;color:var(--muted)}
 .yr{font-family:var(--f-display);font-weight:800;font-size:22px;color:var(--muted);padding:16px 0 4px;border-bottom:1px solid var(--line)}
 .more{width:100%;padding:14px;font-weight:600;color:var(--accent);text-align:center}
 .imp{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px}

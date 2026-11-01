@@ -1,11 +1,17 @@
 (function(){
   'use strict';
-  var APP_VERSION='22';
+  var APP_VERSION='23';
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
   try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
   var LOC=LANG==='en'?'en-GB':'uk-UA';
   var EN={
+"Редагувати тренування": "Edit workout",
+"Тренування завершене": "Workout finished",
+"Пропущено": "Skipped",
+"кг": "kg",
+"Змінити порядок вправ": "Change exercise order",
+"Редагування. Зміни запишуться в таблицю, коли натиснете «Зберегти зміни» або вийдете.": "Editing. Changes are written to the sheet when you tap “Save changes” or leave.",
 "Тренування триває": "Workout in progress",
 " підходів": " sets",
 "Продовжити": "Continue",
@@ -602,7 +608,7 @@
   }
 
   /* ---------- local storage ---------- */
-  function touch(s){s.updated=Date.now();if(s.draft)return;saveLocal()}
+  function touch(s){s.updated=Date.now();if(s.editing)s._chg=true;if(s.draft)return;saveLocal()}
   function touchLib(id){var d=custom[id];if(!d)return;d.updated=Date.now();saveLib()}
 
   /* ---------- backup to Google Sheets ---------- */
@@ -928,28 +934,31 @@
     return t.length?t:(d&&d.cf?d.cf.slice():[]);
   }
   function cfText(id,v){var d=EX[id];return d&&d.min?fw(v[0]).replace(',','.')+' min':v.join('*')}
+  // завершене тренування лише для перегляду, доки не натиснути «Редагувати»
+  function locked(){return !!(cur&&cur.finished&&!cur.editing)}
   function cardHTML(id){
-    var d=EX[id],arr=cur.ex[id];
+    var d=EX[id],arr=cur.ex[id],lk=locked();
     if(!d||!arr)return '';
     if(d.t==='cardio'){
       var on=arr[0].done,cv=cfVals(id,arr[0]),f='';
       (d.lab||[T('хв')]).forEach(function(l,i){
-        f+='<label class="cff" for="cf-'+id+'-'+i+'"><span>'+esc(l)+'</span><input id="cf-'+id+'-'+i+'" type="text" inputmode="decimal" autocomplete="off" value="'+(cv[i]!=null?fw(cv[i]):'')+'" data-ex="'+id+'" data-cf="'+i+'"></label>';
+        f+='<label class="cff" for="cf-'+id+'-'+i+'"><span>'+esc(l)+'</span><input id="cf-'+id+'-'+i+'" type="text" inputmode="decimal" autocomplete="off" value="'+(cv[i]!=null?fw(cv[i]):'')+'" data-ex="'+id+'" data-cf="'+i+'"'+(lk?' readonly':'')+'></label>';
       });
-      return '<section class="ex'+(on?' fin':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id)+(!on?'<button class="later" data-act="later" data-ex="'+id+T('">Пізніше</button>'):'')+'</div></div>'+
+      return '<section class="ex'+(on?' fin':'')+(lk?' lk':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id)+(!on&&!lk?'<button class="later" data-act="later" data-ex="'+id+T('">Пізніше</button>'):'')+'</div></div>'+
         '<div class="cardio'+(on?' on':'')+'"><div class="cfr">'+f+'</div>'+
-        '<button class="cdone" data-act="cardio" data-ex="'+id+'" aria-pressed="'+on+'">'+(on?T('Готово ✓'):T('Позначити'))+'</button></div></section>';
+        '<button class="cdone" data-act="cardio" data-ex="'+id+'" aria-pressed="'+on+'"'+(lk?' disabled':'')+'>'+(on?T('Готово ✓'):(lk?T('Пропущено'):T('Позначити')))+'</button></div></section>';
     }
     var all=arr.every(function(x){return x.done});
     var mixed=arr.some(function(x){return x.w!==arr[0].w});
     var p='';
     arr.forEach(function(x,i){
-      p+='<button class="plate'+(x.done?' on':'')+'" data-act="set" data-ex="'+id+'" data-i="'+i+'" aria-pressed="'+x.done+T('" aria-label="Підхід ')+(i+1)+', '+repsOf(id,i,x)+T(' повторень"><b>')+repsOf(id,i,x)+'</b>'+(mixed?'<small>'+fw(x.w)+'</small>':'')+'</button>';
+      p+='<button class="plate'+(x.done?' on':'')+'" data-act="set" data-ex="'+id+'" data-i="'+i+'"'+(lk?' disabled':'')+' aria-pressed="'+x.done+T('" aria-label="Підхід ')+(i+1)+', '+repsOf(id,i,x)+T(' повторень"><b>')+repsOf(id,i,x)+'</b>'+(mixed?'<small>'+fw(x.w)+'</small>':'')+'</button>';
     });
-    return '<section class="ex'+(all?' fin':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id)+(d.tag?'<p class="tag">'+d.tag+'</p>':'')+
-      (!all?'<button class="later" data-act="later" data-ex="'+id+T('">Пізніше</button>'):'')+
-      ((cur.extra||[]).indexOf(id)>=0&&!arr.some(function(x){return x.done})?'<button class="rmx" data-act="rmx" data-ex="'+id+T('">Прибрати з тренування</button>'):'')+'</div>'+
-      '<div class="wt"><button data-act="wm" data-ex="'+id+T('" aria-label="Менше">−</button><label><input id="w-')+id+'" type="text" inputmode="decimal" value="'+fw(curW(arr))+'" data-ex="'+id+T('" aria-label="Вага, кг"><span>кг</span></label><button data-act="wp" data-ex="')+id+T('" aria-label="Більше">+</button></div></div>')+
+    var doneW=arr.filter(function(x){return x.done}).map(function(x){return x.w}),shownW=doneW.length?doneW[0]:curW(arr);
+    return '<section class="ex'+(all?' fin':'')+(lk?' lk':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id)+(d.tag?'<p class="tag">'+d.tag+'</p>':'')+
+      (!all&&!lk?'<button class="later" data-act="later" data-ex="'+id+T('">Пізніше</button>'):'')+
+      (!lk&&(cur.extra||[]).indexOf(id)>=0&&!arr.some(function(x){return x.done})?'<button class="rmx" data-act="rmx" data-ex="'+id+T('">Прибрати з тренування</button>'):'')+'</div>'+
+      (lk?'<div class="wt lockw"><b class="num">'+fw(shownW)+'</b><span>'+T('кг')+'</span></div></div>':'<div class="wt"><button data-act="wm" data-ex="'+id+T('" aria-label="Менше">−</button><label><input id="w-')+id+'" type="text" inputmode="decimal" value="'+fw(curW(arr))+'" data-ex="'+id+T('" aria-label="Вага, кг"><span>кг</span></label><button data-act="wp" data-ex="')+id+T('" aria-label="Більше">+</button></div></div>'))+
       '<div class="plates">'+p+'</div></section>';
   }
   function progress(){
@@ -963,11 +972,14 @@
   function renderWorkout(){
     view='workout';
     var dd=dayOf(cur.day);
-    var h=T('<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="Назад">‹</button><h2>')+dd.n+T('</h2><div class="cnt num" id="pc"></div><button class="back" data-act="ord" aria-label="Змінити порядок вправ">⇅</button>')+(cur.draft?'':'<button class="back fin" data-act="finish" aria-label="'+(cur.finished?T('Зберегти зміни'):T('Завершити тренування'))+'">✓</button>')+'</div><div class="bar"><i id="pb"></i></div></div>'+
+    var h=T('<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="Назад">‹</button><h2>')+dd.n+T('</h2><div class="cnt num" id="pc"></div>')+(locked()?'<button class="back edt" data-act="edit" aria-label="'+T('Редагувати тренування')+'">✎</button>':
+        '<button class="back" data-act="ord" aria-label="'+T('Змінити порядок вправ')+'">⇅</button>'+(cur.draft?'':'<button class="back fin" data-act="finish" aria-label="'+(cur.finished?T('Зберегти зміни'):T('Завершити тренування'))+'">✓</button>'))+'</div><div class="bar"><i id="pb"></i></div></div>'+
+      (locked()?'<div class="lockb"><p>'+T('Тренування завершене')+' · '+fmtDate(cur.date)+'</p><button class="retry" data-act="edit">✎ '+T('Редагувати тренування')+'</button></div>':'')+
+      (cur.finished&&cur.editing?'<div class="lockb edit"><p>'+T('Редагування. Зміни запишуться в таблицю, коли натиснете «Зберегти зміни» або вийдете.')+'</p></div>':'')+
       (cur.draft?T('<div class="draft" id="draftb"><p>Перегляд. Тренування почнеться, коли натиснете кнопку або відмітите перший підхід.</p><button class="cta" data-act="begin">Почати тренування</button></div>'):'')+
       '<div class="list">';
     sIds(cur).forEach(function(id){h+=cardHTML(id)});
-    h+=T('</div><button class="addx" data-act="padd">+ Додати вправу</button><button class="finish" id="finb" data-act="finish"')+(cur.draft?' hidden':'')+'>'+(cur.finished?T('Зберегти зміни'):T('Завершити тренування'))+'</button><p class="summary num" id="sum"></p><div id="bkbox" class="bkbox" data-key="'+cur.key+'">'+bkInner(cur)+'</div>';
+    h+=(locked()?'</div><button class="finish" id="finb" hidden>':T('</div><button class="addx" data-act="padd">+ Додати вправу</button><button class="finish" id="finb" data-act="finish"')+(cur.draft?' hidden':'')+'>')+(cur.finished?T('Зберегти зміни'):T('Завершити тренування'))+'</button><p class="summary num" id="sum"></p><div id="bkbox" class="bkbox" data-key="'+cur.key+'">'+bkInner(cur)+'</div>';
     app.innerHTML=h;
     progress();
     window.scrollTo(0,0);
@@ -1371,7 +1383,7 @@
       h+='<button class="chip'+(on?' on':'')+'" style="--dc:'+DAYS[k].color+'" data-act="exday" data-ex="'+id+'" data-day="'+k+'" aria-pressed="'+on+'">'+esc(DAYS[k].n)+'</button>';
     });
     h+='</div><p class="pkerr" id="exdmsg" role="status"></p>';
-    if(cur&&view==='workout'&&!cur.ex[id])h+='<button class="cta" data-act="exadd" data-ex="'+id+'">'+T('Додати в це тренування')+'</button>';
+    if(cur&&view==='workout'&&!cur.ex[id]&&!locked())h+='<button class="cta" data-act="exadd" data-ex="'+id+'">'+T('Додати в це тренування')+'</button>';
     var hist=exHistory(id);
     if(hist.length){
       h+=T('<div class="sec pks">Останні результати</div><div class="hist">');
@@ -1443,8 +1455,11 @@
     if(arr.every(function(x){return x.done}))arr[arr.length-1].w=w;
     touch(cur);refreshCard(id);
   }
+  var EDIT_ACTS={set:1,cardio:1,wm:1,wp:1,later:1,rmx:1,padd:1,ord:1,omv:1,ofreq:1,osave:1,exadd:1,ppick:1,pnew:1};
   function onClick(e){
     if(e.target.closest&&e.target.closest('.odrag'))return;
+    var lb=e.target.closest&&e.target.closest('[data-act]');
+    if(lb&&view==='workout'&&locked()&&EDIT_ACTS[lb.getAttribute('data-act')])return;
     if(Date.now()-dragJustEnded<350)return;
     if(e.target===pk){var wasOrd=!!pk.querySelector('.olist');closePicker();if(wasOrd&&view==='workout')renderWorkoutKeep();return}
     var b=e.target.closest('[data-act]');
@@ -1464,7 +1479,12 @@
     }else if(act==='begin'){beginDraft(true)}
     else if(act==='open'){
       var s2=sessions[b.getAttribute('data-key')];if(s2)openSession(s2);
-    }else if(act==='home'){hideRest();renderHome()}
+    }else if(act==='home'){
+      // вийшли з редагування: збережені зміни все одно йдуть у таблицю
+      if(cur&&cur.editing){var ek=cur;delete ek.editing;if(ek._chg){delete ek._chg;ek.needSheet=true;touch(ek);hideRest();renderHome();sendToSheet(ek);return}touch(ek)}
+      hideRest();renderHome();
+    }
+    else if(act==='edit'){if(cur&&cur.finished){cur.editing=true;renderWorkoutKeep()}}
     else if(act==='set'){
       var i=parseInt(b.getAttribute('data-i'),10),x=cur.ex[id][i];
       x.done=!x.done;if(x.done)x.t=Date.now();else delete x.t;touch(cur);refreshCard(id);
@@ -1478,6 +1498,7 @@
     else if(act==='wp')stepWeight(id,1);
     else if(act==='finish'){
       if(!cur||cur.draft)return;
+      if(cur.editing){delete cur.editing;delete cur._chg}
       finishSession(cur);hideRest();
       bkFocus=cur.key;var fk=cur;renderHome();sendToSheet(fk);
     }
@@ -1582,7 +1603,7 @@
   });
   app.addEventListener('change',function(e){
     var el=e.target;
-    if(el.tagName!=='INPUT'||!cur)return;
+    if(el.tagName!=='INPUT'||!cur||locked())return;
     var id=el.getAttribute('data-ex'),v=parseFloat(String(el.value).replace(',','.'));
     if(!id||!cur.ex[id])return;
     if(el.hasAttribute('data-cf')){
@@ -1634,6 +1655,7 @@
   },{passive:true});
   window.addEventListener('online',function(){loadProgram().then(syncPending)});
   document.addEventListener('visibilitychange',function(){if(!document.hidden){autoFinish();syncPending()}});
+  Object.keys(sessions).forEach(function(k){var s=sessions[k];if(s.editing){delete s.editing;if(s._chg){delete s._chg;s.needSheet=true}}});
   autoFinish();
   loadProgram().then(syncPending);
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}catch(e){}
