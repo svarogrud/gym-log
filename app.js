@@ -1,5 +1,6 @@
 (function(){
   'use strict';
+  var APP_VERSION='5 · 1 лист. 2026';
   /* ---------- програма тренувань ----------
      Джерело правди — вкладки «Програма» і «Дні» в таблиці. Нижче — стартова програма,
      з якої ці вкладки створюються, і яку апка використовує, доки таблицю не підключено. */
@@ -760,7 +761,9 @@
       '<label for="ct">Ключ із скрипта<input class="in" id="ct" type="text" autocomplete="off" spellcheck="false" value="'+esc(cfg.token)+'"></label>'+
       '<p class="pkerr" id="cerr" role="status"></p>'+
       '<button class="cta" type="button" data-act="csave">Зберегти й перевірити</button>'+
-      '<p class="sync">Адреса й ключ зберігаються тільки на цьому пристрої. Як їх отримати, описано в README репозиторію.</p></div></div>';
+      '<p class="sync">Адреса й ключ зберігаються тільки на цьому пристрої. Як їх отримати, описано в README репозиторію.</p></div>'+
+      '<div class="pkf upd"><div class="sec">Апка</div><p class="sync">Версія '+APP_VERSION+'. Якщо після змін нова версія не з’явилась, оновіть вручну. Тренування й налаштування залишаться.</p>'+
+      '<button class="retry" type="button" data-act="upd" id="updb">Оновити апку</button></div></div>';
     pk.hidden=false;
   }
   function saveSettings(){
@@ -778,6 +781,19 @@
         syncPending();
       });
     },function(e){m.textContent=errText(e)});
+  }
+
+  // Примусове оновлення: прибираємо старий кеш і service worker, тягнемо файли заново з мережі.
+  // Дані в localStorage (тренування, налаштування) не чіпаємо.
+  function updateApp(){
+    var b=document.getElementById('updb');
+    if(b){b.disabled=true;b.textContent='Оновлюю…'}
+    var p=Promise.resolve();
+    try{if('serviceWorker' in navigator)p=navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(r){return r.unregister()}))})}catch(e){}
+    p.then(function(){return window.caches?caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k)}))}):null})
+     .then(function(){return Promise.all(['./','index.html','app.css','app.js','sw.js','manifest.webmanifest'].map(function(u){return fetch(u,{cache:'reload'}).catch(function(){})}))})
+     .catch(function(){})
+     .then(function(){location.reload()});
   }
 
   /* ---------- rest timer ---------- */
@@ -879,6 +895,7 @@
     else if(act==='imp')importHistory();
     else if(act==='cfg')openSettings();
     else if(act==='csave')saveSettings();
+    else if(act==='upd')updateApp();
     else if(act==='calp')calShift(-1);
     else if(act==='caln')calShift(1);
     else if(act==='more'){showAll=true;var y=window.scrollY;renderHome();window.scrollTo(0,y)}
@@ -921,5 +938,23 @@
   document.addEventListener('visibilitychange',function(){if(!document.hidden)syncPending()});
   loadProgram().then(syncPending);
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}catch(e){}
-  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
+  if('serviceWorker' in navigator){
+    var hadCtl=!!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange',function(){
+      if(!hadCtl){hadCtl=true;return}
+      // нова версія готова; не перезавантажуємо посеред тренування, а пропонуємо
+      if(document.getElementById('newv'))return;
+      var d=document.createElement('button');d.id='newv';d.className='newv';d.type='button';
+      d.textContent='Є нова версія апки. Натисніть, щоб оновити';
+      d.addEventListener('click',function(){location.reload()});
+      document.body.appendChild(d);
+    });
+    window.addEventListener('load',function(){
+      navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(function(r){try{r.update()}catch(e){}}).catch(function(){});
+    });
+    document.addEventListener('visibilitychange',function(){
+      if(document.hidden)return;
+      navigator.serviceWorker.getRegistration().then(function(r){if(r)r.update()}).catch(function(){});
+    });
+  }
 })();

@@ -127,6 +127,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .calk{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
 .calk span{display:flex;align-items:center;gap:6px}
 .calk b{width:10px;height:10px;border-radius:3px;display:inline-block}
+.upd{margin-top:22px;padding-top:16px;border-top:1px solid var(--line);gap:10px}
+.upd .sec{margin:0}
+.newv{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));top:calc(env(safe-area-inset-top,0px) + 10px);z-index:40;
+  background:var(--accent);color:var(--on-accent);font-weight:600;font-size:15px;padding:12px 14px;border-radius:6px;text-align:center;box-shadow:0 4px 16px rgb(0 0 0 / .25)}
 .yr{font-family:var(--f-display);font-weight:800;font-size:22px;color:var(--muted);padding:16px 0 4px;border-bottom:1px solid var(--line)}
 .more{width:100%;padding:14px;font-weight:600;color:var(--accent);text-align:center}
 .imp{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px}

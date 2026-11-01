@@ -1,10 +1,16 @@
-// Gym Log service worker: app works offline, updates arrive on the next launch
-const CACHE = 'gym-log-v4';
+// Gym Log service worker.
+// App files: network first (always the newest version when online), cache as the offline fallback.
+// Fonts: cache first.
+const CACHE = 'gym-log-v5';
 const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // cache: 'reload' bypasses the browser's HTTP cache, so a new worker never stores stale files
+  e.waitUntil(caches.open(CACHE)
+    .then(c => Promise.all(SHELL.map(u => fetch(u, {cache: 'reload'})
+      .then(r => { if (r.ok) return c.put(u, r); }).catch(() => {}))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -20,12 +26,20 @@ self.addEventListener('fetch', e => {
   const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
   if (url.origin !== self.location.origin && !isFont) return;
 
-  // Fonts: cache first. App files: answer from cache, refresh it in the background.
-  e.respondWith(caches.open(CACHE).then(cache => cache.match(req, {ignoreSearch: !isFont}).then(hit => {
-    const net = fetch(req).then(res => {
-      if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone());
+  if (isFont) {
+    e.respondWith(caches.open(CACHE).then(c => c.match(req).then(hit => hit || fetch(req).then(res => {
+      if (res && (res.ok || res.type === 'opaque')) c.put(req, res.clone());
       return res;
-    }).catch(() => hit);
-    return isFont ? (hit || net) : (hit || net);
-  })));
+    }))));
+    return;
+  }
+
+  e.respondWith(caches.open(CACHE).then(c =>
+    fetch(req, {cache: 'no-cache'}).then(res => {
+      if (res && res.ok) c.put(req, res.clone());
+      return res;
+    }).catch(() => c.match(req, {ignoreSearch: true})
+      .then(hit => hit || (req.mode === 'navigate' ? c.match('index.html') : undefined))
+      .then(hit => hit || Response.error()))
+  ));
 });
