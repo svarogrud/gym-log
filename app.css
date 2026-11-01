@@ -186,7 +186,13 @@ svg.anim .pl{fill:none;stroke:var(--muted);stroke-width:3}
 .top .gear+.gear{margin-left:-4px}
 #exq{margin-top:4px}
 .exg{display:flex;flex-direction:column;gap:6px}
-.exh2{display:flex;align-items:center;gap:8px;margin:0}
+.exh2{display:flex;align-items:center;gap:10px;margin:0;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer;list-style:none;font-size:15px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--ink)}
+.exh2::-webkit-details-marker{display:none}
+.exh2 .exn{flex:1;min-width:0}
+.exh2 .exc{color:var(--muted);font-weight:500}
+.exh2::after{content:"›";font-size:22px;line-height:1;color:var(--muted);transition:transform .15s;transform:rotate(90deg)}
+.exg[open] .exh2::after{transform:rotate(-90deg)}
+.exg{gap:0}
 .exh2 .dn{display:inline-flex}
 .exh2 .ico.svg{font-size:26px}
 .exr{grid-template-columns:22px 1fr auto}

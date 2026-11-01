@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  var APP_VERSION='17';
+  var APP_VERSION='18';
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
   try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
@@ -1196,6 +1196,7 @@
       '<div><div class="rn">'+esc(d.n)+'</div><div class="rs">'+esc(exSummary(id))+'</div></div>'+
       '<div class="rr">'+(l?fmtDate(l)+(l.slice(0,4)!==todayISO().slice(0,4)?'<br>'+l.slice(0,4):''):'—')+'</div></button>';
   }
+  var exOpen={};
   function renderExList(){
     view='exlist';cur=null;
     var h='<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="'+T('Назад')+'">‹</button><h2>'+T('Вправи')+'</h2></div></div>'+
@@ -1203,15 +1204,16 @@
     var seen={};
     DAYKEYS.forEach(function(k){
       var ids=orderFor(k);if(!ids.length)return;
-      h+='<div class="exg"><div class="sec exh2"><span class="dn">'+badge(DAYS[k])+'</span>'+esc(DAYS[k].n)+'</div><div class="rows">';
-      ids.forEach(function(id){if(EX[id]){h+=exRow(id);seen[id]=1}});
-      h+='</div></div>';
+      var rows='',n=0;
+      ids.forEach(function(id){if(EX[id]){rows+=exRow(id);seen[id]=1;n++}});
+      // категорії згорнуті; відкриті запам’ятовуються, поки апка відкрита
+      h+='<details class="exg" data-g="'+k+'"'+(exOpen[k]?' open':'')+'><summary class="exh2"><span class="dn">'+badge(DAYS[k])+'</span><span class="exn">'+esc(DAYS[k].n)+'</span><span class="exc num">'+n+'</span></summary><div class="rows">'+rows+'</div></details>';
     });
     var rest=Object.keys(EX).filter(function(id){return !seen[id]&&(!EX[id].custom||EX[id].ready)});
     if(rest.length){
-      h+='<div class="exg"><div class="sec">'+T('Без дня')+'</div><div class="rows">';
+      h+='<details class="exg" data-g="none"'+(exOpen.none?' open':'')+'><summary class="exh2"><span class="dn"></span><span class="exn">'+T('Без дня')+'</span><span class="exc num">'+rest.length+'</span></summary><div class="rows">';
       rest.forEach(function(id){h+=exRow(id)});
-      h+='</div></div>';
+      h+='</div></details>';
     }
     h+='<p class="sync">'+T('Натисніть на вправу, щоб побачити схему руху, медіа й останні результати. Програму можна змінити у вкладці «Програма» таблиці.')+'</p>';
     app.innerHTML=h;window.scrollTo(0,0);
@@ -1457,11 +1459,21 @@
     else if(act==='more'){showAll=true;var y=window.scrollY;renderHome();window.scrollTo(0,y)}
   }
   app.addEventListener('click',onClick);
+  app.addEventListener('toggle',function(e){
+    var g=e.target;if(!g.classList||!g.classList.contains('exg'))return;
+    var q=document.getElementById('exq');if(q&&q.value)return;
+    exOpen[g.getAttribute('data-g')]=g.open;
+  },true);
   app.addEventListener('input',function(e){
     if(e.target.id!=='exq')return;
     var q=normName(e.target.value);
     app.querySelectorAll('.exr').forEach(function(r){r.hidden=!!q&&r.getAttribute('data-n').indexOf(q)<0});
-    app.querySelectorAll('.exg').forEach(function(g){g.hidden=!g.querySelector('.exr:not([hidden])')});
+    // під час пошуку категорії з результатами розгортаються, після очищення — як були
+    app.querySelectorAll('.exg').forEach(function(g){
+      var has=!!g.querySelector('.exr:not([hidden])');
+      g.hidden=!has;
+      g.open=q?has:!!exOpen[g.getAttribute('data-g')];
+    });
   });
   pk.addEventListener('click',onClick);
   pk.addEventListener('input',function(e){
