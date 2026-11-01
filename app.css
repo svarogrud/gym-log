@@ -52,6 +52,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .resume{border:2px solid var(--accent);border-radius:6px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left}
 .resume b{font-weight:600}
 .resume span{color:var(--accent);font-weight:600}
+.rs2{padding:0;align-items:stretch;gap:0;flex-wrap:wrap}
+.rs2 .rmain{flex:1;min-width:0;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;text-align:left}
+.rs2 .rx{width:48px;flex:none;border-left:1px solid var(--line);font-size:18px;color:var(--muted)}
+.rs2 .rq{flex:1 1 100%;padding:14px 16px 8px}
+.rs2 .rqb{flex:1 1 100%;display:flex;gap:8px;justify-content:flex-end;padding:0 16px 14px}
+.retry.danger{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .empty{color:var(--muted);font-size:15px;padding:14px 0;border-bottom:1px solid var(--line)}
 .sync{color:var(--muted);font-size:13px}
 

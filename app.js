@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  var APP_VERSION='6 · 1 лист. 2026';
+  var APP_VERSION='7 · 1 лист. 2026';
   /* ---------- програма тренувань ----------
      Джерело правди — вкладки «Програма» і «Дні» в таблиці. Нижче — стартова програма,
      з якої ці вкладки створюються, і яку апка використовує, доки таблицю не підключено. */
@@ -589,7 +589,8 @@
     if(!cfg.url)h+='<button class="resume" data-act="cfg"><div><b>Підключіть таблицю</b><div class="tag">Щоб підтягнути історію й зберігати резервну копію</div></div><span>Налаштувати</span></button>';
     if(bkFocus&&sessions[bkFocus])h+='<div id="bkbox" class="bkbox" data-key="'+bkFocus+'">'+bkInner(sessions[bkFocus])+'</div>';
     if(open){
-      h+='<button class="resume" data-act="open" data-key="'+open.key+'"><div><b>Тренування триває</b><div class="tag">'+dayOf(open.day).n+' · '+setsDone(open)+' з '+setsTotal(open)+' підходів</div></div><span>Продовжити</span></button>';
+      h+='<div class="resume rs2" id="resume"><button class="rmain" data-act="open" data-key="'+open.key+'"><div><b>Тренування триває</b><div class="tag">'+dayOf(open.day).n+' · '+setsDone(open)+' з '+setsTotal(open)+' підходів</div></div><span>Продовжити</span></button>'+
+        '<button class="rx" data-act="rdel" data-key="'+open.key+'" aria-label="Видалити незавершене тренування">✕</button></div>';
     }
     h+='<div class="hero"><div class="big">'+badge(dd)+'</div><div class="kick">Наступне за чергою</div><h2>'+dd.n+'</h2><div class="meta">'+dd.ids.length+' вправ · останнє '+fmtDate(lastDate(nd))+'</div><button class="cta" data-act="start" data-day="'+nd+'">Почати тренування</button></div>';
     h+='<div><div class="sec">Усі дні</div><div class="rows">';
@@ -909,6 +910,20 @@
     else if(act==='cfg')openSettings();
     else if(act==='csave')saveSettings();
     else if(act==='upd')updateApp();
+    else if(act==='rdel'){
+      // підтвердження прямо в картці, без системних діалогів
+      var rc=document.getElementById('resume'),dk=b.getAttribute('data-key'),ds=sessions[dk];
+      if(rc&&ds)rc.innerHTML='<div class="rq"><b>Видалити незавершене тренування?</b><div class="tag">'+esc(dayOf(ds.day).n)+' · відмічено підходів: '+setsDone(ds)+'. У таблиці нічого не зміниться.</div></div>'+
+        '<div class="rqb"><button class="retry" data-act="rdelno">Ні</button><button class="retry danger" data-act="rdelyes" data-key="'+dk+'">Видалити</button></div>';
+    }
+    else if(act==='rdelno')renderHome();
+    else if(act==='rdelyes'){
+      var xk=b.getAttribute('data-key');
+      if(sessions[xk]&&!sessions[xk].finished){delete sessions[xk];saveLocal()}
+      renderHome();
+      // сьогоднішнє тренування, якщо воно вже є в таблиці, підтягнеться звідти
+      if(cfg.url)importHistory();
+    }
     else if(act==='calp')calShift(-1);
     else if(act==='caln')calShift(1);
     else if(act==='more'){showAll=true;var y=window.scrollY;renderHome();window.scrollTo(0,y)}
