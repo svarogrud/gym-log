@@ -158,6 +158,15 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .hist{display:flex;flex-direction:column}
 .hrow{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:15px}
 .hrow span{color:var(--muted)}
+.later{font-size:13px;color:var(--muted);font-weight:600;margin-top:4px;text-align:left;display:block}
+.wh .l1 .back[data-act="ord"]{font-size:18px}
+.olist{display:flex;flex-direction:column}
+.orow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.orow .on{width:22px;color:var(--muted);font-size:14px;text-align:right;flex:none}
+.orow .onm{flex:1;min-width:0;font-weight:600}
+.orow.odone .onm{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+.ob{width:40px;height:36px;border:1px solid var(--line);border-radius:4px;font-size:18px;flex:none;background:var(--surface)}
+.ob:disabled{opacity:.3}
 .yr{font-family:var(--f-display);font-weight:800;font-size:22px;color:var(--muted);padding:16px 0 4px;border-bottom:1px solid var(--line)}
 .more{width:100%;padding:14px;font-weight:600;color:var(--accent);text-align:center}
 .imp{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:12px}

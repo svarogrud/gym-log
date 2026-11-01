@@ -11,7 +11,7 @@
 const TOKEN = 'ЗАМІНІТЬ-НА-СВІЙ-КЛЮЧ';
 const SHEET_NAME = 'Sheet1';     // журнал: вправи в рядках, тренування в стовпцях
 const PROGRAM_NAME = 'Програма'; // вправи: назва в журналі, назва в апці, тип, дні, підходи, повтори, вага, примітка, ID, медіа
-const DAYS_NAME = 'Дні';         // дні (порядок рядків = порядок в апці): №, назва, опис, колір, іконка
+const DAYS_NAME = 'Дні';         // дні (порядок рядків = порядок в апці): №, назва, опис, колір, іконка, порядок вправ
 
 /** Відкрийте адресу веб-застосунку в браузері: має з’явитися {"ok":true,...}. */
 function doGet() {
@@ -52,6 +52,8 @@ function doPost(e) {
         return json(initProgram(ss, req));
       case 'addExercise':
         return json(addExercise(ss, req));
+      case 'saveDayOrder':
+        return json(saveDayOrder(ss, req));
       default:
         return json({ ok: false, error: 'bad_action' });
     }
@@ -191,6 +193,25 @@ function addExercise(ss, req) {
   const at = p.getLastRow() + 1;
   p.getRange(at, 1, 1, 9).setNumberFormat('@').setValues([row.concat(Array(9 - row.length).fill(''))]);
   return { ok: true, row: at };
+}
+
+/** Порядок вправ дня: ID через кому в колонці «Порядок» вкладки «Дні» (колонку створює, якщо її немає). */
+function saveDayOrder(ss, req) {
+  const d = ss.getSheetByName(DAYS_NAME);
+  if (!d) return { ok: false, error: 'no_days' };
+  const lastCol = Math.max(d.getLastColumn(), 1);
+  const head = d.getRange(1, 1, 1, lastCol).getDisplayValues()[0].map(norm);
+  let col = head.indexOf('порядок') + 1;
+  if (!col) {
+    col = lastCol + 1;
+    if (col > d.getMaxColumns()) d.insertColumnsAfter(d.getMaxColumns(), col - d.getMaxColumns());
+    d.getRange(1, col).setValue('Порядок').setFontWeight('bold');
+  }
+  const nums = d.getRange(1, 1, Math.max(d.getLastRow(), 1), 1).getDisplayValues().map(r => String(r[0]).trim());
+  const row = nums.indexOf(String(req.num)) + 1;
+  if (row < 2) return { ok: false, error: 'no_day' };
+  d.getRange(row, col).setNumberFormat('@').setValue((req.order || []).join(', '));
+  return { ok: true };
 }
 
 function sameDate(h, iso) {

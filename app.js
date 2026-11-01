@@ -1,11 +1,11 @@
 (function(){
   'use strict';
-  var APP_VERSION='11 · 1 лист. 2026';
+  var APP_VERSION='12 · 1 лист. 2026';
   /* ---------- програма тренувань ----------
      Джерело правди — вкладки «Програма» і «Дні» в таблиці. Нижче — стартова програма,
      з якої ці вкладки створюються, і яку апка використовує, доки таблицю не підключено. */
   var PROG_HEAD=['Назва в журналі','Назва в апці','Тип','Дні','Підходи','Повтори','Вага','Примітка','ID','Медіа'];
-  var DAYS_HEAD=['№','Назва','Опис','Колір','Іконка'];
+  var DAYS_HEAD=['№','Назва','Опис','Колір','Іконка','Порядок'];
   var BUILTIN={
     days:[
       ['1','Ноги','ноги, підтягування, бруси','#ff9900','ноги'],
@@ -98,7 +98,8 @@
     dayRows.forEach(function(r){
       var k=dayKey(r[0]);if(!k||DAYS[k])return;
       var col=hexOk(r[3])?hexNorm(r[3]):'#cccccc';
-      DAYS[k]={n:String(r[1]||'День '+r[0]).trim(),num:parseInt(r[0],10),sub:String(r[2]||'').trim(),ids:[],color:col,icon:String(r[4]||'').trim()};
+      DAYS[k]={n:String(r[1]||'День '+r[0]).trim(),num:parseInt(r[0],10),sub:String(r[2]||'').trim(),ids:[],color:col,icon:String(r[4]||'').trim(),
+        order:String(r[5]||'').split(/[,;\s]+/).filter(Boolean)};
       DAYKEYS.push(k);
     });
     if(!DAYKEYS.length&&dayRows!==BUILTIN.days)return applyProgram({days:BUILTIN.days,ex:exRows});
@@ -321,10 +322,50 @@
   mergeCustom();
   function dayOf(k){return DAYS[k]||DAYS.X}
   function sIds(s){
-    var ids=dayOf(s.day).ids.concat(s.extra||[]);
+    // порядок цього тренування (якщо його змінювали), інакше порядок дня
+    var ids=(s.order&&s.order.length?s.order.slice():orderFor(s.day)).filter(function(id){return s.ex&&s.ex[id]});
+    if(!s.order)(s.extra||[]).forEach(function(id){if(ids.indexOf(id)<0)ids.push(id)});
     // вправи, які вже записані в тренуванні, показуємо, навіть якщо їх прибрали з програми
     Object.keys(s.ex||{}).forEach(function(id){if(ids.indexOf(id)<0)ids.push(id)});
     return ids;
+  }
+  /* ---------- порядок вправ у дні ----------
+     Збережений порядок (вкладка «Дні», колонка «Порядок», або на телефоні, поки не записався в таблицю),
+     а якщо його немає — за тим, як часто вправу справді виконували в цей день. */
+  var LSO='gym.order.v1',dayOrd={};
+  try{dayOrd=JSON.parse(lsGet(LSO)||'{}')||{}}catch(e){dayOrd={}}
+  function saveOrd(){lsSet(LSO,JSON.stringify(dayOrd))}
+  function freqOrder(k){
+    var base=dayOf(k).ids,cnt={};
+    base.forEach(function(id){cnt[id]=0});
+    Object.keys(sessions).forEach(function(q){
+      var s=sessions[q];if(!s.finished||s.day!==k||!s.ex)return;
+      base.forEach(function(id){if(s.ex[id]&&anyDone(s.ex[id]))cnt[id]++});
+    });
+    return base.slice().sort(function(a,b){return (cnt[b]-cnt[a])||(base.indexOf(a)-base.indexOf(b))});
+  }
+  function orderFor(k){
+    var d=dayOf(k),base=d.ids,loc=dayOrd[k],saved=null;
+    if(loc&&loc.pending)saved=loc.ids;
+    else if(d.order&&d.order.length)saved=d.order;
+    else if(loc)saved=loc.ids;
+    if(!saved)return freqOrder(k);
+    var res=saved.filter(function(id){return base.indexOf(id)>=0});
+    base.forEach(function(id){if(res.indexOf(id)<0)res.push(id)});
+    return res;
+  }
+  function saveDayOrder(k,ids){
+    if(!DAYS[k]||k==='X')return Promise.resolve(false);
+    var keep=ids.filter(function(id){return DAYS[k].ids.indexOf(id)>=0});
+    dayOrd[k]={ids:keep,pending:true,at:Date.now()};saveOrd();
+    return pushOrder(k);
+  }
+  function pushOrder(k){
+    var o=dayOrd[k];
+    if(!o||!o.pending||!cfg.url||!DAYS[k])return Promise.resolve(false);
+    return api('saveDayOrder',{num:DAYS[k].num,order:o.ids}).then(function(){
+      o.pending=false;DAYS[k].order=o.ids.slice();saveOrd();return true;
+    },function(){return false});
   }
   restSec=parseInt(lsGet(LSR)||'90',10)||90;
 
@@ -352,15 +393,15 @@
     return best;
   }
   function newSession(day){
-    var prev=lastFinished(day), ex={};
-    DAYS[day].ids.forEach(function(id){
+    var prev=lastFinished(day), ex={}, ord=orderFor(day);
+    ord.forEach(function(id){
       var d=EX[id];
       var p=prev&&prev.ex[id];
       if(d.t==='cardio'){ex[id]=[{done:false,v:p&&p[0]?cfVals(id,p[0]):d.cf.slice()}];return}
       ex[id]=d.s.map(function(x,i){var q=p&&(p[i]||p[p.length-1]);return {w:(q&&typeof q.w==='number')?q.w:x[1],done:false}});
     });
     var date=todayISO();
-    return {key:date+'_'+day,day:day,date:date,started:Date.now(),finished:0,updated:Date.now(),ex:ex,extra:[]};
+    return {key:date+'_'+day,day:day,date:date,started:Date.now(),finished:0,updated:Date.now(),ex:ex,extra:[],order:ord.slice()};
   }
 
   /* ---------- local storage ---------- */
@@ -476,7 +517,8 @@
     if(!cfg.url||navigator.onLine===false)return Promise.resolve();
     var exs=Object.keys(custom).filter(function(id){var d=custom[id];return d.ready&&!d.synced});
     var list=Object.keys(sessions).map(function(k){return sessions[k]}).filter(function(s){return s.finished&&s.needSheet});
-    if(!exs.length&&!list.length)return Promise.resolve();
+    var ords=Object.keys(dayOrd).filter(function(k){return dayOrd[k]&&dayOrd[k].pending});
+    if(!exs.length&&!list.length&&!ords.length)return Promise.resolve();
     syncing=true;
     var chain=Promise.resolve();
     exs.forEach(function(id){chain=chain.then(function(){
@@ -488,6 +530,7 @@
         .then(function(){d.synced=true;saveLib()},function(){});
     })});
     list.forEach(function(s){chain=chain.then(function(){return backup(s)})});
+    ords.forEach(function(k){chain=chain.then(function(){return pushOrder(k)})});
     var done=function(){syncing=false;if(syncAgain){syncAgain=false;syncPending()}else if(view==='home')renderHome()};
     return chain.then(done,done);
   }
@@ -512,7 +555,7 @@
       // старий скрипт не віддає колонку «Іконка» — беремо стандартну іконку за назвою дня
       if(!j.daysHead)days=days.map(function(r){
         var b=BUILTIN.days.filter(function(x){return normName(x[1])===normName(r[1])})[0];
-        return [r[0],r[1],r[2],r[3],b?b[4]:''];
+        return [r[0],r[1],r[2],r[3],b?b[4]:'',''];
       });
       var p={days:days,ex:canon(j.progHead,j.ex,PROG_HEAD),at:Date.now()};
       lsSet(LSP,JSON.stringify(p));
@@ -691,7 +734,7 @@
       (d.lab||['хв']).forEach(function(l,i){
         f+='<label class="cff" for="cf-'+id+'-'+i+'"><span>'+esc(l)+'</span><input id="cf-'+id+'-'+i+'" type="text" inputmode="decimal" autocomplete="off" value="'+(cv[i]!=null?fw(cv[i]):'')+'" data-ex="'+id+'" data-cf="'+i+'"></label>';
       });
-      return '<section class="ex'+(on?' fin':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id)+'</div></div>'+
+      return '<section class="ex'+(on?' fin':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id)+(!on?'<button class="later" data-act="later" data-ex="'+id+'">Пізніше</button>':'')+'</div></div>'+
         '<div class="cardio'+(on?' on':'')+'"><div class="cfr">'+f+'</div>'+
         '<button class="cdone" data-act="cardio" data-ex="'+id+'" aria-pressed="'+on+'">'+(on?'Готово ✓':'Позначити')+'</button></div></section>';
     }
@@ -702,6 +745,7 @@
       p+='<button class="plate'+(x.done?' on':'')+'" data-act="set" data-ex="'+id+'" data-i="'+i+'" aria-pressed="'+x.done+'" aria-label="Підхід '+(i+1)+', '+repsOf(id,i,x)+' повторень"><b>'+repsOf(id,i,x)+'</b>'+(mixed?'<small>'+fw(x.w)+'</small>':'')+'</button>';
     });
     return '<section class="ex'+(all?' fin':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id)+(d.tag?'<p class="tag">'+d.tag+'</p>':'')+
+      (!all?'<button class="later" data-act="later" data-ex="'+id+'">Пізніше</button>':'')+
       ((cur.extra||[]).indexOf(id)>=0&&!arr.some(function(x){return x.done})?'<button class="rmx" data-act="rmx" data-ex="'+id+'">Прибрати з тренування</button>':'')+'</div>'+
       '<div class="wt"><button data-act="wm" data-ex="'+id+'" aria-label="Менше">−</button><label><input id="w-'+id+'" type="text" inputmode="decimal" value="'+fw(curW(arr))+'" data-ex="'+id+'" aria-label="Вага, кг"><span>кг</span></label><button data-act="wp" data-ex="'+id+'" aria-label="Більше">+</button></div></div>'+
       '<div class="plates">'+p+'</div></section>';
@@ -717,7 +761,7 @@
   function renderWorkout(){
     view='workout';
     var dd=dayOf(cur.day);
-    var h='<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="Назад">‹</button><h2>'+dd.n+'</h2><div class="cnt num" id="pc"></div></div><div class="bar"><i id="pb"></i></div></div><div class="list">';
+    var h='<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="Назад">‹</button><h2>'+dd.n+'</h2><div class="cnt num" id="pc"></div><button class="back" data-act="ord" aria-label="Змінити порядок вправ">⇅</button></div><div class="bar"><i id="pb"></i></div></div><div class="list">';
     sIds(cur).forEach(function(id){h+=cardHTML(id)});
     h+='</div><button class="addx" data-act="padd">+ Додати вправу</button><button class="finish" data-act="finish">'+(cur.finished?'Зберегти зміни':'Завершити тренування')+'</button><p class="summary num" id="sum"></p><div id="bkbox" class="bkbox" data-key="'+cur.key+'">'+bkInner(cur)+'</div>';
     app.innerHTML=h;
@@ -792,6 +836,7 @@
     if(d.t==='cardio')cur.ex[id]=[{done:false,v:p&&p[0]?cfVals(id,p[0]):d.cf.slice()}];
     else cur.ex[id]=d.s.map(function(x,i){return {w:(p&&p[i]&&typeof p[i].w==='number')?p[i].w:x[1],done:false}});
     cur.extra=(cur.extra||[]).concat([id]);
+    cur.order=sIds(cur).filter(function(x){return x!==id}).concat([id]);
     touch(cur);
     var list=document.querySelector('.list');
     if(list)list.insertAdjacentHTML('beforeend',cardHTML(id));
@@ -804,6 +849,7 @@
     if(cur.ex[id].some(function(x){return x.done}))return;
     delete cur.ex[id];
     cur.extra=cur.extra.filter(function(x){return x!==id});
+    if(cur.order)cur.order=cur.order.filter(function(x){return x!==id});
     var d=custom[id];
     if(d&&d.from===cur.key&&!d.ready){
       delete custom[id];delete EX[id];saveLib();
@@ -870,6 +916,33 @@
      .catch(function(){})
      .then(function(){location.reload()});
   }
+
+  /* ---------- зміна порядку вправ ---------- */
+  function openOrder(){
+    if(!cur)return;
+    var ids=sIds(cur),h='<div class="pkp" role="dialog" aria-label="Порядок вправ"><div class="pkh"><h2>Порядок вправ</h2><button class="back" data-act="odone" aria-label="Готово">×</button></div><div class="olist">';
+    ids.forEach(function(id,i){
+      var d=EX[id];if(!d)return;
+      h+='<div class="orow'+(anyDone(cur.ex[id])?' odone':'')+'"><span class="on num">'+(i+1)+'</span><span class="onm">'+esc(d.n)+'</span>'+
+        '<button class="ob" data-act="omv" data-ex="'+id+'" data-d="-1" aria-label="Вище"'+(i===0?' disabled':'')+'>↑</button>'+
+        '<button class="ob" data-act="omv" data-ex="'+id+'" data-d="1" aria-label="Нижче"'+(i===ids.length-1?' disabled':'')+'>↓</button></div>';
+    });
+    h+='</div><button class="retry" data-act="ofreq">Як найчастіше виконую</button>'+
+      (cur.day!=='X'?'<button class="cta" data-act="osave">Зберегти для наступних тренувань «'+esc(dayOf(cur.day).n)+'»</button>':'')+
+      '<p class="pkerr" id="omsg" role="status"></p>'+
+      '<p class="sync">Без збереження зміни діють лише в цьому тренуванні. «Як найчастіше виконую» ставить нагору вправи, які ви робите найчастіше, а пропущені — вниз.</p></div>';
+    pk.innerHTML=h;pk.hidden=false;
+  }
+  function moveOrd(id,dir){
+    var ids=sIds(cur),i=ids.indexOf(id),j=i+dir;
+    if(i<0||j<0||j>=ids.length)return;
+    ids.splice(i,1);ids.splice(j,0,id);cur.order=ids;touch(cur);
+    var y=pk.querySelector('.pkp')?pk.querySelector('.pkp').scrollTop:0;
+    openOrder();
+    var p2=pk.querySelector('.pkp');if(p2)p2.scrollTop=y;
+    var btn=pk.querySelector('[data-act="omv"][data-ex="'+id+'"][data-d="'+dir+'"]');if(btn&&!btn.disabled)try{btn.focus({preventScroll:true})}catch(e){}
+  }
+  function renderWorkoutKeep(){var y=window.scrollY;renderWorkout();window.scrollTo(0,y)}
 
   /* ---------- деталі вправи ---------- */
   function titleBtn(id){
@@ -976,7 +1049,7 @@
     touch(cur);refreshCard(id);
   }
   function onClick(e){
-    if(e.target===pk){closePicker();return}
+    if(e.target===pk){var wasOrd=!!pk.querySelector('.olist');closePicker();if(wasOrd&&view==='workout')renderWorkoutKeep();return}
     var b=e.target.closest('[data-act]');
     if(!b||b.tagName==='INPUT')return;
     var act=b.getAttribute('data-act'),id=b.getAttribute('data-ex');
@@ -990,13 +1063,13 @@
     }else if(act==='home'){hideRest();renderHome()}
     else if(act==='set'){
       var i=parseInt(b.getAttribute('data-i'),10),x=cur.ex[id][i];
-      x.done=!x.done;touch(cur);refreshCard(id);
+      x.done=!x.done;if(x.done)x.t=Date.now();else delete x.t;touch(cur);refreshCard(id);
       var focusSel='#c-'+id+' .plate[data-i="'+i+'"]';
       var nb=document.querySelector(focusSel);if(nb&&document.activeElement!==nb)try{nb.focus({preventScroll:true})}catch(er){}
       if(x.done&&setsDone(cur)<setsTotal(cur))startRest();
       else if(!x.done)hideRest();
     }else if(act==='cardio'){
-      var c=cur.ex[id][0];c.done=!c.done;touch(cur);refreshCard(id);
+      var c=cur.ex[id][0];c.done=!c.done;if(c.done)c.t=Date.now();else delete c.t;touch(cur);refreshCard(id);
     }else if(act==='wm')stepWeight(id,-1);
     else if(act==='wp')stepWeight(id,1);
     else if(act==='finish'){
@@ -1020,6 +1093,24 @@
     else if(act==='csave')saveSettings();
     else if(act==='upd')updateApp();
     else if(act==='info')openInfo(id);
+    else if(act==='later'){
+      // тренажер зайнятий: вправа йде в кінець списку цього тренування
+      cur.order=sIds(cur).filter(function(x){return x!==id}).concat([id]);touch(cur);
+      var el=document.getElementById('c-'+id),lst=document.querySelector('.list');
+      if(el&&lst){lst.appendChild(el);el.outerHTML=cardHTML(id)}
+    }
+    else if(act==='ord')openOrder();
+    else if(act==='omv'){moveOrd(id,parseInt(b.getAttribute('data-d'),10))}
+    else if(act==='ofreq'){cur.order=freqOrder(cur.day).filter(function(x){return cur.ex[x]});sIds(cur).forEach(function(x){if(cur.order.indexOf(x)<0)cur.order.push(x)});touch(cur);openOrder()}
+    else if(act==='osave'){
+      var om=document.getElementById('omsg');if(om){om.className='pkerr';om.textContent='Зберігаю…'}
+      saveDayOrder(cur.day,sIds(cur)).then(function(ok){
+        var m2=document.getElementById('omsg');if(!m2)return;
+        m2.className='pkerr okc';
+        m2.textContent=ok?'Збережено. Наступні тренування цього дня йтимуть у такому порядку.':'Збережено на телефоні. У таблицю запишеться, коли оновите скрипт.';
+      });
+    }
+    else if(act==='odone'){closePicker();renderWorkoutKeep()}
     else if(act==='rdel'){
       // підтвердження прямо в картці, без системних діалогів
       var rc=document.getElementById('resume'),dk=b.getAttribute('data-key'),ds=sessions[dk];
