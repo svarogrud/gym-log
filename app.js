@@ -1,10 +1,10 @@
 (function(){
   'use strict';
-  var APP_VERSION='10 · 1 лист. 2026';
+  var APP_VERSION='11 · 1 лист. 2026';
   /* ---------- програма тренувань ----------
      Джерело правди — вкладки «Програма» і «Дні» в таблиці. Нижче — стартова програма,
      з якої ці вкладки створюються, і яку апка використовує, доки таблицю не підключено. */
-  var PROG_HEAD=['Назва в журналі','Назва в апці','Тип','Дні','Підходи','Повтори','Вага','Примітка','ID'];
+  var PROG_HEAD=['Назва в журналі','Назва в апці','Тип','Дні','Підходи','Повтори','Вага','Примітка','ID','Медіа'];
   var DAYS_HEAD=['№','Назва','Опис','Колір','Іконка'];
   var BUILTIN={
     days:[
@@ -69,7 +69,7 @@
     if(!j&&!n)return null;
     if(!id)id='n:'+normName(j||n);
     var days=String(r[3]||'').split(/[^\d]+/).map(dayKey).filter(Boolean);
-    var d={n:n,j:j||n,days:days};
+    var d={n:n,j:j||n,days:days,media:String(r[9]||'').trim()};
     if(type.indexOf('кард')===0||type==='cardio'){
       // кардіо: у «Примітці» план як у журналі (15*10*7 або 20 min), у «Повторах» — назви полів через «;»
       d.t='cardio';d.sh=note||'';d.d=note||'';
@@ -369,7 +369,7 @@
 
   /* ---------- backup to Google Sheets ---------- */
   var bk={}, bkFocus=null;
-  function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+  function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
   function colLetter(i){var s='';i++;while(i>0){var m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s}
   // Крапки замість скісних рисок, щоб Google (локаль en_US) не перетворив дату на іншу
   function sheetDate(iso){var p=iso.split('-');return p[2]+'.'+p[1]+'.'+p[0]}
@@ -691,7 +691,7 @@
       (d.lab||['хв']).forEach(function(l,i){
         f+='<label class="cff" for="cf-'+id+'-'+i+'"><span>'+esc(l)+'</span><input id="cf-'+id+'-'+i+'" type="text" inputmode="decimal" autocomplete="off" value="'+(cv[i]!=null?fw(cv[i]):'')+'" data-ex="'+id+'" data-cf="'+i+'"></label>';
       });
-      return '<section class="ex'+(on?' fin':'')+'" id="c-'+id+'"><div class="exh"><div><h3>'+esc(d.n)+'</h3></div></div>'+
+      return '<section class="ex'+(on?' fin':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id)+'</div></div>'+
         '<div class="cardio'+(on?' on':'')+'"><div class="cfr">'+f+'</div>'+
         '<button class="cdone" data-act="cardio" data-ex="'+id+'" aria-pressed="'+on+'">'+(on?'Готово ✓':'Позначити')+'</button></div></section>';
     }
@@ -701,7 +701,7 @@
     arr.forEach(function(x,i){
       p+='<button class="plate'+(x.done?' on':'')+'" data-act="set" data-ex="'+id+'" data-i="'+i+'" aria-pressed="'+x.done+'" aria-label="Підхід '+(i+1)+', '+repsOf(id,i,x)+' повторень"><b>'+repsOf(id,i,x)+'</b>'+(mixed?'<small>'+fw(x.w)+'</small>':'')+'</button>';
     });
-    return '<section class="ex'+(all?' fin':'')+'" id="c-'+id+'"><div class="exh"><div><h3>'+d.n+'</h3>'+(d.tag?'<p class="tag">'+d.tag+'</p>':'')+
+    return '<section class="ex'+(all?' fin':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id)+(d.tag?'<p class="tag">'+d.tag+'</p>':'')+
       ((cur.extra||[]).indexOf(id)>=0&&!arr.some(function(x){return x.done})?'<button class="rmx" data-act="rmx" data-ex="'+id+'">Прибрати з тренування</button>':'')+'</div>'+
       '<div class="wt"><button data-act="wm" data-ex="'+id+'" aria-label="Менше">−</button><label><input id="w-'+id+'" type="text" inputmode="decimal" value="'+fw(curW(arr))+'" data-ex="'+id+'" aria-label="Вага, кг"><span>кг</span></label><button data-act="wp" data-ex="'+id+'" aria-label="Більше">+</button></div></div>'+
       '<div class="plates">'+p+'</div></section>';
@@ -871,6 +871,54 @@
      .then(function(){location.reload()});
   }
 
+  /* ---------- деталі вправи ---------- */
+  function titleBtn(id){
+    var d=EX[id];
+    return '<h3><button class="ttl" data-act="info" data-ex="'+id+'">'+esc(d.n)+'<span class="inf" aria-hidden="true">i</span></button></h3>';
+  }
+  // Посилання з колонки «Медіа»: картинка/GIF, відео-файл, YouTube або Google Drive (через пробіл можна кілька)
+  function mediaHTML(raw){
+    var h='';
+    String(raw||'').split(/\s+/).forEach(function(u){
+      if(!/^https?:\/\//i.test(u))return;
+      var m=u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]+)/);
+      if(m)u='https://drive.google.com/thumbnail?id='+m[1]+'&sz=w1000';
+      if(/youtube\.com|youtu\.be|vimeo\.com|instagram\.com|tiktok\.com/i.test(u))h+='<a class="retry mlink" href="'+esc(u)+'" target="_blank" rel="noopener">▶ Відкрити відео</a>';
+      else if(/\.(mp4|webm|mov)(\?|#|$)/i.test(u))h+='<video class="media" src="'+esc(u)+'" autoplay loop muted playsinline></video>';
+      else h+='<img class="media" src="'+esc(u)+'" alt="" loading="lazy">';
+    });
+    return h;
+  }
+  function exHistory(id){
+    return Object.keys(sessions).map(function(k){return sessions[k]})
+      .filter(function(s){return s.finished&&s.ex&&s.ex[id]&&anyDone(s.ex[id])})
+      .sort(function(a,b){return a.date<b.date?1:-1}).slice(0,6);
+  }
+  function openInfo(id){
+    var d=EX[id];if(!d)return;
+    var q=(String(d.j||d.n).split('/')[0].replace(/\(.*?\)/g,'').trim()||d.n)+' exercise';
+    var h='<div class="pkp" role="dialog" aria-label="'+esc(d.n)+'"><div class="pkh"><h2>'+esc(d.n)+'</h2><button class="back" data-act="pclose" aria-label="Закрити">×</button></div>';
+    var sub=[];
+    if(d.j&&normName(d.j)!==normName(d.n))sub.push(d.j);
+    if(d.tag&&normName(d.tag)!==normName(d.j))sub.push(d.tag);
+    if(sub.length)h+='<p class="sync">'+esc(sub.join(' · '))+'</p>';
+    var md=mediaHTML(d.media);
+    h+=md?'<div class="mbox">'+md+'</div>':'<p class="sync">Додайте посилання на фото тренажера, GIF або відео у вкладці «Програма», колонка «Медіа», і воно з’явиться тут.</p>';
+    h+='<a class="retry mlink" href="https://www.youtube.com/results?search_query='+encodeURIComponent(q)+'" target="_blank" rel="noopener">Знайти відео на YouTube</a>';
+    var hist=exHistory(id);
+    if(hist.length){
+      h+='<div class="sec pks">Останні результати</div><div class="hist">';
+      hist.forEach(function(s){h+='<div class="hrow"><span>'+fmtDate(s.date)+(s.date.slice(0,4)!==todayISO().slice(0,4)?' '+s.date.slice(0,4):'')+'</span><b class="num">'+esc(cellText(id,s.ex[id]))+'</b></div>'});
+      h+='</div>';
+    }
+    h+='</div>';
+    pk.innerHTML=h;pk.hidden=false;
+    // зламане посилання: замість порожньої рамки — пояснення
+    pk.querySelectorAll('img.media,video.media').forEach(function(el){el.addEventListener('error',function(){
+      var p=document.createElement('p');p.className='sync';p.textContent='Не вдалося показати медіа за посиланням. Перевірте, що воно відкривається без входу.';el.replaceWith(p);
+    })});
+  }
+
   /* ---------- rest timer ---------- */
   var restEnd=0,restIv=null,actx=null,restEl=document.getElementById('rest');
   function mmss(s){return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2)}
@@ -971,6 +1019,7 @@
     else if(act==='cfg')openSettings();
     else if(act==='csave')saveSettings();
     else if(act==='upd')updateApp();
+    else if(act==='info')openInfo(id);
     else if(act==='rdel'){
       // підтвердження прямо в картці, без системних діалогів
       var rc=document.getElementById('resume'),dk=b.getAttribute('data-key'),ds=sessions[dk];

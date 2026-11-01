@@ -10,7 +10,7 @@
  */
 const TOKEN = 'ЗАМІНІТЬ-НА-СВІЙ-КЛЮЧ';
 const SHEET_NAME = 'Sheet1';     // журнал: вправи в рядках, тренування в стовпцях
-const PROGRAM_NAME = 'Програма'; // вправи: назва в журналі, назва в апці, тип, дні, підходи, повтори, вага, примітка, ID
+const PROGRAM_NAME = 'Програма'; // вправи: назва в журналі, назва в апці, тип, дні, підходи, повтори, вага, примітка, ID, медіа
 const DAYS_NAME = 'Дні';         // дні (порядок рядків = порядок в апці): №, назва, опис, колір, іконка
 
 /** Відкрийте адресу веб-застосунку в браузері: має з’явитися {"ok":true,...}. */
@@ -127,13 +127,16 @@ function readProgram(ss) {
 
   const pv = p.getDataRange().getDisplayValues();
   const ex = [];
+  const head = pv[0] || [];
+  let idCol = head.map(norm).indexOf('id');
+  if (idCol < 0) idCol = 8;
   for (let i = 1; i < pv.length; i++) {
-    const r = pv[i].slice(0, 9);
-    while (r.length < 9) r.push('');
+    const r = pv[i].slice();
+    while (r.length < Math.max(head.length, idCol + 1)) r.push('');
     if (!String(r[0]).trim() && !String(r[1]).trim()) continue;
-    if (!String(r[8]).trim()) {
-      r[8] = 'x' + Utilities.getUuid().replace(/-/g, '').slice(0, 10);
-      p.getRange(i + 1, 9).setValue(r[8]);
+    if (!String(r[idCol]).trim()) {
+      r[idCol] = 'x' + Utilities.getUuid().replace(/-/g, '').slice(0, 10);
+      p.getRange(i + 1, idCol + 1).setValue(r[idCol]);
     }
     ex.push(r);
   }
