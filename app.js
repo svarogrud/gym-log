@@ -1,50 +1,209 @@
 (function(){
   'use strict';
-  var APP_VERSION='14 · 1 лист. 2026';
+  var APP_VERSION='16';
+  // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
+  var LANG='uk';
+  try{LANG=localStorage.getItem('gym.lang.v1')||((navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en')}catch(e){LANG=(navigator.language||'').toLowerCase().indexOf('uk')===0?'uk':'en'}
+  var LOC=LANG==='en'?'en-GB':LOC;
+  var EN={
+"Назад": "Back",
+"Вправи": "Exercises",
+"Пошук вправи": "Search exercises",
+"Без дня": "No day",
+"Натисніть на вправу, щоб побачити схему руху, медіа й останні результати. Програму можна змінити у вкладці «Програма» таблиці.": "Tap an exercise to see the movement diagram, media and recent results. You can change the program in the sheet’s “Програма” tab.",
+"</div></div><button class=\"gear\" data-act=\"exlist\" aria-label=\"Список вправ\">☰</button><button class=\"gear\" data-act=\"cfg\" aria-label=\"Налаштування таблиці\">⚙</button></div>": "</div></div><button class=\"gear\" data-act=\"exlist\" aria-label=\"Exercise list\">☰</button><button class=\"gear\" data-act=\"cfg\" aria-label=\"Sheet settings\">⚙</button></div>",
+"<button class=\"retry\" type=\"button\" data-act=\"upd\" id=\"updb\">Оновити апку</button></div>": "<button class=\"retry\" type=\"button\" data-act=\"upd\" id=\"updb\">Update app</button></div>",
+"швидкість": "speed",
+"опір": "resistance",
+    "хв": "min",
+    "нахил": "incline",
+    "рівень": "level",
+    "День ": "Day ",
+    "Тренування": "Workout",
+    "без чіткого дня": "no specific day",
+    "сьогодні": "today",
+    "вчора": "yesterday",
+    " дн. тому": " days ago",
+    "Таблицю не підключено. Натисніть ⚙ угорі й вставте адресу скрипта.": "The sheet isn’t connected. Tap ⚙ at the top and paste the script address.",
+    "Немає інтернету. Запишу в таблицю, щойно з’явиться мережа.": "No internet. I’ll write to the sheet as soon as you’re back online.",
+    "Ключ не збігається з ключем у скрипті. Перевірте налаштування (⚙).": "The key doesn’t match the key in the script. Check the settings (⚙).",
+    "Скрипт відповів не так, як очікувалось. Перевірте, що його опубліковано як веб-застосунок з доступом «Anyone».": "The script answered unexpectedly. Make sure it is deployed as a web app with access set to “Anyone”.",
+    "Таблиця не відповіла вчасно. Спробуйте ще раз.": "The sheet didn’t respond in time. Try again.",
+    "Не вдалося з’єднатися з таблицею. Перевірте адресу скрипта та інтернет.": "Couldn’t reach the sheet. Check the script address and your internet connection.",
+    "Помилка таблиці: ": "Sheet error: ",
+    "Ще не записано в таблицю.": "Not written to the sheet yet.",
+    "З таблиці, стовпець ": "From the sheet, column ",
+    "Записано в таблицю, стовпець ": "Written to the sheet, column ",
+    " Дата в таблиці: ": " Date in the sheet: ",
+    "Спробувати ще раз": "Try again",
+    "Записати в таблицю": "Write to the sheet",
+    "Записую в таблицю…": "Writing to the sheet…",
+    "Оновлено стовпець ": "Updated column ",
+    " у таблиці.": " in the sheet.",
+    "Оновити історію з таблиці": "Update history from the sheet",
+    "Імпортувати історію з таблиці": "Import history from the sheet",
+    "Читаю таблицю…": "Reading the sheet…",
+    "Таблиця порожня або недоступна.": "The sheet is empty or unavailable.",
+    "Імпортовано тренувань: ": "Workouts imported: ",
+    ". Незафарбовані клітинки (": ". Unfilled cells (",
+    ") пораховано як пропущені.": ") counted as skipped.",
+    " Виправлено дат: ": " Dates fixed: ",
+    " (позначені ≈, якщо дата приблизна).": " (marked ≈ when the date is approximate).",
+    " Пропущено ": " Skipped ",
+    ", бо вони вже є в апці.": " because they’re already in the app.",
+    " Не вдалося розібрати клітинок: ": " Couldn’t read cells: ",
+    "<div class=\"calh\"><button class=\"calb\" data-act=\"calp\" aria-label=\"Попередній місяць\">‹</button>": "<div class=\"calh\"><button class=\"calb\" data-act=\"calp\" aria-label=\"Previous month\">‹</button>",
+    "тренування": "workout",
+    "тренувань": "workouts",
+    "без тренувань": "no workouts",
+    "<button class=\"calb\" data-act=\"caln\" aria-label=\"Наступний місяць\">›</button></div><div class=\"calg\">": "<button class=\"calb\" data-act=\"caln\" aria-label=\"Next month\">›</button></div><div class=\"calg\">",
+    "Пн": "Mon",
+    "Вт": "Tue",
+    "Ср": "Wed",
+    "Чт": "Thu",
+    "Пт": "Fri",
+    "Сб": "Sat",
+    "Нд": "Sun",
+    "</div></div><button class=\"gear\" data-act=\"cfg\" aria-label=\"Налаштування таблиці\">⚙</button></div>": "</div></div><button class=\"gear\" data-act=\"cfg\" aria-label=\"Sheet settings\">⚙</button></div>",
+    "<button class=\"resume\" data-act=\"cfg\"><div><b>Підключіть таблицю</b><div class=\"tag\">Щоб підтягнути історію й зберігати резервну копію</div></div><span>Налаштувати</span></button>": "<button class=\"resume\" data-act=\"cfg\"><div><b>Connect your sheet</b><div class=\"tag\">To pull in your history and keep a backup</div></div><span>Set up</span></button>",
+    "\"><div><b>Тренування триває</b><div class=\"tag\">": "\"><div><b>Workout in progress</b><div class=\"tag\">",
+    " з ": " of ",
+    " підходів</div></div><span>Продовжити</span></button>": " sets</div></div><span>Continue</span></button>",
+    "\" aria-label=\"Видалити незавершене тренування\">✕</button></div>": "\" aria-label=\"Delete unfinished workout\">✕</button></div>",
+    "</div><div class=\"kick\">Наступне за чергою</div><h2>": "</div><div class=\"kick\">Up next</div><h2>",
+    " вправ · останнє ": " exercises · last ",
+    "\">Почати тренування</button></div>": "\">Start workout</button></div>",
+    "<div><div class=\"sec\">Усі дні</div><div class=\"rows\">": "<div><div class=\"sec\">All days</div><div class=\"rows\">",
+    "<div><div class=\"sec\">Календар</div><div class=\"cal\" id=\"cal\">": "<div><div class=\"sec\">Calendar</div><div class=\"cal\" id=\"cal\">",
+    "<div><div class=\"sec\">Журнал": "<div><div class=\"sec\">Log",
+    "<div class=\"empty\">Тут з’являться завершені тренування. Щоб підтягнути всі попередні, імпортуйте їх з таблиці.</div>": "<div class=\"empty\">Finished workouts will appear here. To bring in all earlier ones, import them from the sheet.</div>",
+    " підходів · ": " sets · ",
+    " кг": " kg",
+    " · в таблиці": " · in sheet",
+    "<button class=\"more\" data-act=\"more\">Показати всі (": "<button class=\"more\" data-act=\"more\">Show all (",
+    "<p class=\"sync\">Записи зберігаються на цьому телефоні. Після завершення тренування апка додає його в таблицю": "<p class=\"sync\">Records are stored on this phone. After you finish a workout, the app adds it to the sheet",
+    ". Чекають на запис: ": ". Waiting to be written: ",
+    "\">Пізніше</button>": "\">Later</button>",
+    "Готово ✓": "Done ✓",
+    "Позначити": "Mark done",
+    "\" aria-label=\"Підхід ": "\" aria-label=\"Set ",
+    " повторень\"><b>": " reps\"><b>",
+    "\">Прибрати з тренування</button>": "\">Remove from workout</button>",
+    "\" aria-label=\"Менше\">−</button><label><input id=\"w-": "\" aria-label=\"Less\">−</button><label><input id=\"w-",
+    "\" aria-label=\"Вага, кг\"><span>кг</span></label><button data-act=\"wp\" data-ex=\"": "\" aria-label=\"Weight, kg\"><span>kg</span></label><button data-act=\"wp\" data-ex=\"",
+    "\" aria-label=\"Більше\">+</button></div></div>": "\" aria-label=\"More\">+</button></div></div>",
+    " кг сумарно": " kg total",
+    "<div class=\"wh\"><div class=\"l1\"><button class=\"back\" data-act=\"home\" aria-label=\"Назад\">‹</button><h2>": "<div class=\"wh\"><div class=\"l1\"><button class=\"back\" data-act=\"home\" aria-label=\"Back\">‹</button><h2>",
+    "</h2><div class=\"cnt num\" id=\"pc\"></div><button class=\"back\" data-act=\"ord\" aria-label=\"Змінити порядок вправ\">⇅</button></div><div class=\"bar\"><i id=\"pb\"></i></div></div>": "</h2><div class=\"cnt num\" id=\"pc\"></div><button class=\"back\" data-act=\"ord\" aria-label=\"Change exercise order\">⇅</button></div><div class=\"bar\"><i id=\"pb\"></i></div></div>",
+    "<div class=\"draft\" id=\"draftb\"><p>Перегляд. Тренування почнеться, коли натиснете кнопку або відмітите перший підхід.</p><button class=\"cta\" data-act=\"begin\">Почати тренування</button></div>": "<div class=\"draft\" id=\"draftb\"><p>Preview. The workout starts when you tap the button or tick your first set.</p><button class=\"cta\" data-act=\"begin\">Start workout</button></div>",
+    "</div><button class=\"addx\" data-act=\"padd\">+ Додати вправу</button><button class=\"finish\" id=\"finb\" data-act=\"finish\"": "</div><button class=\"addx\" data-act=\"padd\">+ Add exercise</button><button class=\"finish\" id=\"finb\" data-act=\"finish\"",
+    "Зберегти зміни": "Save changes",
+    "Завершити тренування": "Finish workout",
+    " · після завершення стане частиною дня «": " · after you finish, joins the day “",
+    " · з’явиться в списку після завершення": " · appears in the list after you finish",
+    "без дня в програмі": "not in any day",
+    "<div class=\"pkp\" role=\"dialog\" aria-label=\"Додати вправу\"><div class=\"pkh\"><h2>Додати вправу</h2><button class=\"back\" data-act=\"pclose\" aria-label=\"Закрити\">×</button></div>": "<div class=\"pkp\" role=\"dialog\" aria-label=\"Add exercise\"><div class=\"pkh\"><h2>Add exercise</h2><button class=\"back\" data-act=\"pclose\" aria-label=\"Close\">×</button></div>",
+    "<div class=\"pkt\"><button data-act=\"ptab\" data-tab=\"l\" class=\"on\">З наявних</button><button data-act=\"ptab\" data-tab=\"n\">Нова</button></div>": "<div class=\"pkt\"><button data-act=\"ptab\" data-tab=\"l\" class=\"on\">Existing</button><button data-act=\"ptab\" data-tab=\"n\">New</button></div>",
+    "<div id=\"pk-l\"><input class=\"in\" id=\"pkq\" type=\"search\" placeholder=\"Пошук\" autocomplete=\"off\" aria-label=\"Пошук вправи\">": "<div id=\"pk-l\"><input class=\"in\" id=\"pkq\" type=\"search\" placeholder=\"Search\" autocomplete=\"off\" aria-label=\"Search exercises\">",
+    "<div class=\"sec pks\">Мої вправи</div>": "<div class=\"sec pks\">My exercises</div>",
+    "<div class=\"sec pks\">Інші дні</div>": "<div class=\"sec pks\">Other days</div>",
+    "<p class=\"empty\">Усі наявні вправи вже в цьому тренуванні.</p>": "<p class=\"empty\">All existing exercises are already in this workout.</p>",
+    "<div id=\"pk-n\" class=\"pkf\" hidden><label for=\"nn\">Назва<input class=\"in\" id=\"nn\" type=\"text\" maxlength=\"60\" autocomplete=\"off\" placeholder=\"Наприклад, молоткові згинання\"></label>": "<div id=\"pk-n\" class=\"pkf\" hidden><label for=\"nn\">Name<input class=\"in\" id=\"nn\" type=\"text\" maxlength=\"60\" autocomplete=\"off\" placeholder=\"For example, hammer curls\"></label>",
+    "<div class=\"pkg\"><label for=\"ns\">Підходи<input class=\"in\" id=\"ns\" type=\"number\" inputmode=\"numeric\" min=\"1\" max=\"10\" value=\"3\"></label>": "<div class=\"pkg\"><label for=\"ns\">Sets<input class=\"in\" id=\"ns\" type=\"number\" inputmode=\"numeric\" min=\"1\" max=\"10\" value=\"3\"></label>",
+    "<label for=\"nr\">Повтори<input class=\"in\" id=\"nr\" type=\"number\" inputmode=\"numeric\" min=\"1\" max=\"100\" value=\"10\"></label>": "<label for=\"nr\">Reps<input class=\"in\" id=\"nr\" type=\"number\" inputmode=\"numeric\" min=\"1\" max=\"100\" value=\"10\"></label>",
+    "<label for=\"nw\">Вага, кг<input class=\"in\" id=\"nw\" type=\"text\" inputmode=\"decimal\" value=\"0\"></label></div>": "<label for=\"nw\">Weight, kg<input class=\"in\" id=\"nw\" type=\"text\" inputmode=\"decimal\" value=\"0\"></label></div>",
+    "<button class=\"cta\" type=\"button\" data-act=\"pnew\">Створити й додати</button>": "<button class=\"cta\" type=\"button\" data-act=\"pnew\">Create and add</button>",
+    "Коли ви завершите тренування, вправа стане частиною дня «": "When you finish the workout, the exercise joins the day “",
+    "» і з’явиться у вкладці «Програма».": "” and appears in the “Програма” tab.",
+    "Коли ви завершите тренування, вправа з’явиться у вкладці «Програма» (без дня).": "When you finish the workout, the exercise appears in the “Програма” tab (without a day).",
+    " У журналі для неї додасться окремий рядок.</p></div></div>": " It also gets its own row in the log.</p></div></div>",
+    "Введіть назву вправи.": "Enter the exercise name.",
+    "Вправа з такою назвою вже є. Знайдіть її у вкладці «З наявних».": "An exercise with this name already exists. Find it under “Existing”.",
+    "<div class=\"pkp\" role=\"dialog\" aria-label=\"Налаштування таблиці\"><div class=\"pkh\"><h2>Таблиця</h2><button class=\"back\" data-act=\"pclose\" aria-label=\"Закрити\">×</button></div>": "<div class=\"pkp\" role=\"dialog\" aria-label=\"Sheet settings\"><div class=\"pkh\"><h2>Sheet</h2><button class=\"back\" data-act=\"pclose\" aria-label=\"Close\">×</button></div>",
+    "<div class=\"pkf\"><label for=\"cu\">Адреса скрипта (Web app URL)<input class=\"in\" id=\"cu\" type=\"url\" inputmode=\"url\" autocomplete=\"off\" spellcheck=\"false\" placeholder=\"https://script.google.com/macros/s/…/exec\" value=\"": "<div class=\"pkf\"><label for=\"cu\">Script address (Web app URL)<input class=\"in\" id=\"cu\" type=\"url\" inputmode=\"url\" autocomplete=\"off\" spellcheck=\"false\" placeholder=\"https://script.google.com/macros/s/…/exec\" value=\"",
+    "<label for=\"ct\">Ключ із скрипта<input class=\"in\" id=\"ct\" type=\"text\" autocomplete=\"off\" spellcheck=\"false\" value=\"": "<label for=\"ct\">Key from the script<input class=\"in\" id=\"ct\" type=\"text\" autocomplete=\"off\" spellcheck=\"false\" value=\"",
+    "<button class=\"cta\" type=\"button\" data-act=\"csave\">Зберегти й перевірити</button>": "<button class=\"cta\" type=\"button\" data-act=\"csave\">Save and check</button>",
+    "<p class=\"sync\">Адреса й ключ зберігаються тільки на цьому пристрої. Як їх отримати, описано в README репозиторію.</p></div>": "<p class=\"sync\">The address and key are stored only on this device. The repository README explains how to get them.</p></div>",
+    "<div class=\"pkf upd\"><div class=\"sec\">Апка</div><p class=\"sync\">Версія ": "<div class=\"pkf upd\"><div class=\"sec\">App</div><p class=\"sync\">Version ",
+    ". Якщо після змін нова версія не з’явилась, оновіть вручну. Тренування й налаштування залишаться.</p>": ". If a new version didn’t show up after changes, update manually. Your workouts and settings stay.</p>",
+    "<button class=\"retry\" type=\"button\" data-act=\"upd\" id=\"updb\">Оновити апку</button></div></div>": "<button class=\"retry\" type=\"button\" data-act=\"upd\" id=\"updb\">Update app</button></div></div>",
+    "Адреса має виглядати так: https://script.google.com/macros/s/…/exec": "The address should look like this: https://script.google.com/macros/s/…/exec",
+    "Вставте ключ, який ви вписали в скрипт.": "Paste the key you wrote into the script.",
+    "Перевіряю…": "Checking…",
+    "З’єднано з таблицею «": "Connected to the sheet “",
+    "». Завантажую програму…": "”. Loading the program…",
+    " Програму завантажено з вкладки «Програма».": " Program loaded from the “Програма” tab.",
+    "Оновлюю…": "Updating…",
+    "<div class=\"pkp\" role=\"dialog\" aria-label=\"Порядок вправ\"><div class=\"pkh\"><h2>Порядок вправ</h2><button class=\"back\" data-act=\"odone\" aria-label=\"Готово\">×</button></div><div class=\"olist\">": "<div class=\"pkp\" role=\"dialog\" aria-label=\"Exercise order\"><div class=\"pkh\"><h2>Exercise order</h2><button class=\"back\" data-act=\"odone\" aria-label=\"Done\">×</button></div><div class=\"olist\">",
+    "\" data-d=\"-1\" aria-label=\"Вище\"": "\" data-d=\"-1\" aria-label=\"Up\"",
+    "\" data-d=\"1\" aria-label=\"Нижче\"": "\" data-d=\"1\" aria-label=\"Down\"",
+    "</div><button class=\"retry\" data-act=\"ofreq\">Як найчастіше виконую</button>": "</div><button class=\"retry\" data-act=\"ofreq\">As I usually do them</button>",
+    "<button class=\"cta\" data-act=\"osave\">Зберегти для наступних тренувань «": "<button class=\"cta\" data-act=\"osave\">Save for future “",
+    "<p class=\"sync\">Перетягуйте вправи за ≡ або стрілками. Без збереження зміни діють лише в цьому тренуванні. «Як найчастіше виконую» ставить нагору вправи, які ви робите найчастіше, а пропущені — вниз.</p></div>": "<p class=\"sync\">Drag exercises by ≡ or use the arrows. Without saving, changes apply to this workout only. “As I usually do them” puts the exercises you do most often on top and skipped ones at the bottom.</p></div>",
+    "\" target=\"_blank\" rel=\"noopener\">▶ Відкрити відео</a>": "\" target=\"_blank\" rel=\"noopener\">▶ Open video</a>",
+    "</h2><button class=\"back\" data-act=\"pclose\" aria-label=\"Закрити\">×</button></div>": "</h2><button class=\"back\" data-act=\"pclose\" aria-label=\"Close\">×</button></div>",
+    "Схема руху. ": "Movement diagram. ",
+    "Фото свого тренажера, GIF чи відео можна додати у вкладці «Програма», колонка «Медіа».</p>": "You can add a photo of your machine, a GIF or a video in the “Програма” tab, “Медіа” column.</p>",
+    "\" target=\"_blank\" rel=\"noopener\">Знайти відео на YouTube</a>": "\" target=\"_blank\" rel=\"noopener\">Find a video on YouTube</a>",
+    "<div class=\"sec pks\">Останні результати</div><div class=\"hist\">": "<div class=\"sec pks\">Recent results</div><div class=\"hist\">",
+    "Не вдалося показати медіа за посиланням. Перевірте, що воно відкривається без входу.": "Couldn’t show the media from this link. Check that it opens without signing in.",
+    "відпочинок": "rest",
+    "час наступного підходу": "time for the next set",
+    "Зберігаю…": "Saving…",
+    "Збережено. Наступні тренування цього дня йтимуть у такому порядку.": "Saved. Future workouts of this day will follow this order.",
+    "Збережено на телефоні. У таблицю запишеться, коли оновите скрипт.": "Saved on this phone. It will be written to the sheet once you update the script.",
+    "<div class=\"rq\"><b>Видалити незавершене тренування?</b><div class=\"tag\">": "<div class=\"rq\"><b>Delete the unfinished workout?</b><div class=\"tag\">",
+    " · відмічено підходів: ": " · sets ticked: ",
+    ". У таблиці нічого не зміниться.</div></div>": ". Nothing changes in the sheet.</div></div>",
+    "<div class=\"rqb\"><button class=\"retry\" data-act=\"rdelno\">Ні</button><button class=\"retry danger\" data-act=\"rdelyes\" data-key=\"": "<div class=\"rqb\"><button class=\"retry\" data-act=\"rdelno\">No</button><button class=\"retry danger\" data-act=\"rdelyes\" data-key=\"",
+    "\">Видалити</button></div>": "\">Delete</button></div>",
+    "Є нова версія апки. Натисніть, щоб оновити": "A new version is available. Tap to update"
+    };
+  function T(s){return LANG==='en'&&EN[s]!=null?EN[s]:s}
   /* ---------- програма тренувань ----------
      Джерело правди — вкладки «Програма» і «Дні» в таблиці. Нижче — стартова програма,
      з якої ці вкладки створюються, і яку апка використовує, доки таблицю не підключено. */
-  var PROG_HEAD=['Назва в журналі','Назва в апці','Тип','Дні','Підходи','Повтори','Вага','Примітка','ID','Медіа'];
-  var DAYS_HEAD=['№','Назва','Опис','Колір','Іконка','Порядок'];
+  var PROG_HEAD=['Назва в журналі','Назва в апці','Тип','Дні','Підходи','Повтори','Вага','Примітка','ID','Медіа','Name EN'];
+  var DAYS_HEAD=['№','Назва','Опис','Колір','Іконка','Порядок','Name EN'];
   var BUILTIN={
     days:[
-      ['1','Ноги','ноги, підтягування, бруси','#ff9900','ноги'],
-      ['2','Плечі та спина','плечі, спина, підтягування','#4a86e8','плечі, спина'],
-      ['3','Груди та руки','груди, біцепс, трицепс','#9900ff','груди, руки']
+      ['1','Ноги','ноги, підтягування, бруси','#ff9900','ноги','','Legs'],
+      ['2','Плечі та спина','плечі, спина, підтягування','#4a86e8','плечі, спина','','Shoulders & back'],
+      ['3','Груди та руки','груди, біцепс, трицепс','#9900ff','груди, руки','','Chest & arms']
     ],
     ex:[
-      ['elipse','Еліпс','кардіо','1, 2, 3','','хв; нахил; рівень','','15*10*7','ell'],
-      ['bike','Велосипед','кардіо','1, 2, 3','','хв','','20 min','bike'],
-      ['low back','Низ спини','сила','1, 2, 3','3','15','77','low back','lowb'],
-      ['back extension','Гіперекстензія','сила','1, 2, 3','3','15','77','back extension','bext'],
-      ['abdominal/прес лежачи','Прес лежачи','сила','1, 3','3','15','0','вага 0 = своя вага','abs'],
-      ['P14 abdominal crunch/пресс на станку, згинання','Скручування на тренажері','сила','1, 2, 3','3','15','59','P14','crunch'],
-      ['chin/підтягування','Підтягування','сила','1, 2','3','8','20','chin','chin'],
-      ['dip/бруси','Бруси','сила','1, 2','3','10','20','dip','dip'],
-      ['converting shoulder press/ жим вгору станок','Жим вгору на тренажері','сила','2','3','10','23','shoulder press','shp'],
-      ['seated row','Тяга сидячи','сила','2','2','10','36','seated row','srow'],
-      ['P22 rotary torso/боки, повороти','Повороти корпусу','сила','2','3','10','50','P22 rotary torso','rot'],
-      ['rear delt','Задня дельта','сила','2','3','10','39','rear delt','rear'],
-      ['P20 lateral raise/плечі','Махи в сторони','сила','2','3','10','45','P20 lateral raise','lat'],
-      ['P6 diverging seated row','Розвідна тяга сидячи','сила','2','3','10','45','P6 diverging seated row','drow'],
-      ['lat pulldown','Тяга верхнього блоку','сила','2','3','10','45','lat pulldown','pull'],
-      ['жим лежачи','Жим лежачи','сила','3','3','10','30','','bench'],
-      ['біцепс гнута штанга','Біцепс зі штангою','сила','3','3','10','20','гнута штанга','bbic'],
-      ['жим лежачи під кутом','Жим лежачи під кутом','сила','3','3','10','20','','incl'],
-      ['біцепс гантелі','Біцепс з гантелями','сила','3','3','10','15','','dbic'],
-      ['triceps pressdown','Трицепс на блоці','сила','3','3','10','18','triceps pressdown','tri'],
-      ['тріцепс за голову','Трицепс за головою','сила','3','3','10','7.5; 10; 10','','tri2'],
-      ['low row','Нижня тяга','сила','3','3','10','45','low row','lrow'],
-      ['leg extension  (5,1,3)','Розгинання ніг','сила','1','3','10','36','налаштування 5, 1, 3','lext'],
-      ['leg curl','Згинання ніг','сила','1','3','10','36','leg curl','lcurl'],
-      ['hip adductor / в середину ><','Зведення ніг','сила','1','3','10','43','hip adductor, до середини','add'],
-      ['hip abductor / назовні  <>','Розведення ніг','сила','1','3','15','50','hip abductor, назовні','abd'],
-      ['glute','Сідничні','сила','1','3','10','32','glute','glute'],
-      ['hack squat/присідання під кутом','Присідання під кутом','сила','1','3','10','30','hack squat','hack'],
-      ['ікри стоячи','Ікри стоячи','сила','1','3','10','50','','calfs'],
-      ['ікри сидячи','Ікри сидячи','сила','1','3','15','30','','calft'],
-      ['prone leg curl / лежачи','Згинання ніг лежачи','сила','1','3','10','32','prone leg curl','plc'],
-      ['leg press (4)','Жим ногами','сила','1','3','15','59','налаштування 4','lpress']
+      ['elipse','Еліпс','кардіо','1, 2, 3','','хв; нахил; рівень','','15*10*7','ell','','Elliptical'],
+      ['bike','Велосипед','кардіо','1, 2, 3','','хв','','20 min','bike','','Bike'],
+      ['low back','Низ спини','сила','1, 2, 3','3','15','77','low back','lowb','','Lower back'],
+      ['back extension','Гіперекстензія','сила','1, 2, 3','3','15','77','back extension','bext','','Back extension'],
+      ['abdominal/прес лежачи','Прес лежачи','сила','1, 3','3','15','0','вага 0 = своя вага','abs','','Floor crunches'],
+      ['P14 abdominal crunch/пресс на станку, згинання','Скручування на тренажері','сила','1, 2, 3','3','15','59','P14','crunch','','Ab crunch machine'],
+      ['chin/підтягування','Підтягування','сила','1, 2','3','8','20','chin','chin','','Pull-ups'],
+      ['dip/бруси','Бруси','сила','1, 2','3','10','20','dip','dip','','Dips'],
+      ['converting shoulder press/ жим вгору станок','Жим вгору на тренажері','сила','2','3','10','23','shoulder press','shp','','Shoulder press machine'],
+      ['seated row','Тяга сидячи','сила','2','2','10','36','seated row','srow','','Seated cable row'],
+      ['P22 rotary torso/боки, повороти','Повороти корпусу','сила','2','3','10','50','P22 rotary torso','rot','','Rotary torso'],
+      ['rear delt','Задня дельта','сила','2','3','10','39','rear delt','rear','','Rear delt fly'],
+      ['P20 lateral raise/плечі','Махи в сторони','сила','2','3','10','45','P20 lateral raise','lat','','Lateral raise'],
+      ['P6 diverging seated row','Розвідна тяга сидячи','сила','2','3','10','45','P6 diverging seated row','drow','','Diverging seated row'],
+      ['lat pulldown','Тяга верхнього блоку','сила','2','3','10','45','lat pulldown','pull','','Lat pulldown'],
+      ['жим лежачи','Жим лежачи','сила','3','3','10','30','','bench','','Bench press'],
+      ['біцепс гнута штанга','Біцепс зі штангою','сила','3','3','10','20','гнута штанга','bbic','','EZ-bar curl'],
+      ['жим лежачи під кутом','Жим лежачи під кутом','сила','3','3','10','20','','incl','','Incline bench press'],
+      ['біцепс гантелі','Біцепс з гантелями','сила','3','3','10','15','','dbic','','Dumbbell curl'],
+      ['triceps pressdown','Трицепс на блоці','сила','3','3','10','18','triceps pressdown','tri','','Triceps pressdown'],
+      ['тріцепс за голову','Трицепс за головою','сила','3','3','10','7.5; 10; 10','','tri2','','Overhead triceps extension'],
+      ['low row','Нижня тяга','сила','3','3','10','45','low row','lrow','','Low row'],
+      ['leg extension  (5,1,3)','Розгинання ніг','сила','1','3','10','36','налаштування 5, 1, 3','lext','','Leg extension'],
+      ['leg curl','Згинання ніг','сила','1','3','10','36','leg curl','lcurl','','Seated leg curl'],
+      ['hip adductor / в середину ><','Зведення ніг','сила','1','3','10','43','hip adductor, до середини','add','','Hip adductor'],
+      ['hip abductor / назовні  <>','Розведення ніг','сила','1','3','15','50','hip abductor, назовні','abd','','Hip abductor'],
+      ['glute','Сідничні','сила','1','3','10','32','glute','glute','','Glute kickback'],
+      ['hack squat/присідання під кутом','Присідання під кутом','сила','1','3','10','30','hack squat','hack','','Hack squat'],
+      ['ікри стоячи','Ікри стоячи','сила','1','3','10','50','','calfs','','Standing calf raise'],
+      ['ікри сидячи','Ікри сидячи','сила','1','3','15','30','','calft','','Seated calf raise'],
+      ['prone leg curl / лежачи','Згинання ніг лежачи','сила','1','3','10','32','prone leg curl','plc','','Lying leg curl'],
+      ['leg press (4)','Жим ногами','сила','1','3','15','59','налаштування 4','lpress','','Leg press']
     ]
   };
   // Дати останніх тренувань до появи апки (поки історію не імпортовано)
@@ -65,7 +224,9 @@
     return String(t==null?'':t).split('*').map(function(x){return parseFloat(String(x).replace(',','.').replace(/[^\d.]/g,''))}).filter(function(x){return !isNaN(x)});
   }
   function exFromRow(r){
-    var j=String(r[0]||'').trim(),n=String(r[1]||'').trim()||j,type=normName(r[2]),note=String(r[7]||'').trim(),id=String(r[8]||'').trim();
+    var j=String(r[0]||'').trim(),n=String(r[1]||'').trim()||j;
+    if(LANG==='en'){var en=String(r[10]||'').trim();if(en)n=en;else if(/[a-z]/i.test(j.split('/')[0])){n=j.split('/')[0].replace(/\(.*?\)/g,'').trim();n=n.charAt(0).toUpperCase()+n.slice(1)}}
+    var type=normName(r[2]),note=String(r[7]||'').trim(),id=String(r[8]||'').trim();
     if(!j&&!n)return null;
     if(!id)id='n:'+normName(j||n);
     var days=String(r[3]||'').split(/[^\d]+/).map(dayKey).filter(Boolean);
@@ -76,7 +237,7 @@
       var nums=cfNums(note);d.cf=nums.length?nums:[20];
       d.min=nums.length===1&&/min|хв/i.test(note);
       var lab=String(r[5]||'').split(/\s*[;,]\s*/).map(function(x){return x.trim()}).filter(Boolean);
-      d.lab=lab.length>=d.cf.length?lab.slice(0,d.cf.length):({1:['хв'],2:['хв','нахил'],3:['хв','нахил','рівень']}[d.cf.length]||d.cf.map(function(_,i){return '#'+(i+1)}));
+      d.lab=lab.length>=d.cf.length?lab.slice(0,d.cf.length).map(T):({1:[T('хв')],2:[T('хв'),T('нахил')],3:[T('хв'),T('нахил'),T('рівень')]}[d.cf.length]||d.cf.map(function(_,i){return '#'+(i+1)}));
     }
     else{
       var reps=parseList(r[5]),ws=parseList(r[6]);
@@ -98,7 +259,9 @@
     dayRows.forEach(function(r){
       var k=dayKey(r[0]);if(!k||DAYS[k])return;
       var col=hexOk(r[3])?hexNorm(r[3]):'#cccccc';
-      DAYS[k]={n:String(r[1]||'День '+r[0]).trim(),num:parseInt(r[0],10),sub:String(r[2]||'').trim(),ids:[],color:col,icon:String(r[4]||'').trim(),
+      var dn=String(r[1]||T('День ')+r[0]).trim();
+      if(LANG==='en')dn=String(r[6]||'').trim()||({'ноги':'Legs','плечі та спина':'Shoulders & back','груди та руки':'Chest & arms'}[normName(dn)])||dn;
+      DAYS[k]={n:dn,num:parseInt(r[0],10),sub:String(r[2]||'').trim(),ids:[],color:col,icon:String(r[4]||'').trim(),
         order:String(r[5]||'').split(/[,;\s]+/).filter(Boolean)};
       DAYKEYS.push(k);
     });
@@ -108,7 +271,7 @@
       EX[e.id]=e.d;NAME2ID[normName(e.d.j)]=e.id;
       e.d.days.forEach(function(k){if(DAYS[k])DAYS[k].ids.push(e.id)});
     });
-    DAYS.X={n:'Тренування',num:'·',sub:'без чіткого дня',ids:[],color:'#cccccc'};
+    DAYS.X={n:T('Тренування'),num:'·',sub:T('без чіткого дня'),ids:[],color:'#cccccc'};
     // вправи, які є лише в одному дні, допомагають вгадати день старого стовпця
     Object.keys(GROUPS).forEach(function(k){delete GROUPS[k]});
     DAYKEYS.forEach(function(k){GROUPS[k]=DAYS[k].ids.filter(function(id){return EX[id].days.length===1})});
@@ -370,11 +533,11 @@
   restSec=parseInt(lsGet(LSR)||'90',10)||90;
 
   function todayISO(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
-  function fmtDate(iso){return new Date(iso+'T12:00:00').toLocaleDateString('uk-UA',{day:'numeric',month:'short'})}
+  function fmtDate(iso){return new Date(iso+'T12:00:00').toLocaleDateString(LOC,{day:'numeric',month:'short'})}
   function ago(iso){
     var a=new Date(iso+'T12:00:00'),b=new Date(todayISO()+'T12:00:00');
     var n=Math.round((b-a)/86400000);
-    return n<=0?'сьогодні':n===1?'вчора':n+' дн. тому';
+    return n<=0?T('сьогодні'):n===1?T('вчора'):n+T(' дн. тому');
   }
   function fw(w){return String(w).replace('.',',')}
   function saveLocal(){lsSet(LS,JSON.stringify(sessions))}
@@ -459,13 +622,13 @@
   }
   function errText(e){
     var c=e&&e.code;
-    if(c==='no_config')return 'Таблицю не підключено. Натисніть ⚙ угорі й вставте адресу скрипта.';
-    if(c==='offline')return 'Немає інтернету. Запишу в таблицю, щойно з’явиться мережа.';
-    if(c==='bad_token')return 'Ключ не збігається з ключем у скрипті. Перевірте налаштування (⚙).';
-    if(c==='not_json')return 'Скрипт відповів не так, як очікувалось. Перевірте, що його опубліковано як веб-застосунок з доступом «Anyone».';
-    if(c==='timeout')return 'Таблиця не відповіла вчасно. Спробуйте ще раз.';
-    if(c==='network'||c==='http')return 'Не вдалося з’єднатися з таблицею. Перевірте адресу скрипта та інтернет.';
-    return 'Помилка таблиці: '+((e&&e.message)||c);
+    if(c==='no_config')return T('Таблицю не підключено. Натисніть ⚙ угорі й вставте адресу скрипта.');
+    if(c==='offline')return T('Немає інтернету. Запишу в таблицю, щойно з’явиться мережа.');
+    if(c==='bad_token')return T('Ключ не збігається з ключем у скрипті. Перевірте налаштування (⚙).');
+    if(c==='not_json')return T('Скрипт відповів не так, як очікувалось. Перевірте, що його опубліковано як веб-застосунок з доступом «Anyone».');
+    if(c==='timeout')return T('Таблиця не відповіла вчасно. Спробуйте ще раз.');
+    if(c==='network'||c==='http')return T('Не вдалося з’єднатися з таблицею. Перевірте адресу скрипта та інтернет.');
+    return T('Помилка таблиці: ')+((e&&e.message)||c);
   }
   // Виконані вправи фарбуємо кольором дня, пропущені лишаємо білими з планом
   function payloadFor(s){
@@ -481,10 +644,10 @@
   }
   function bkInner(s){
     var b=bk[s.key];
-    if(!b&&s.needSheet)b={state:'wait',msg:'Ще не записано в таблицю.'};
-    else if(!b&&s.sheetAt)b={state:'ok',msg:(s.imported?'З таблиці, стовпець ':'Записано в таблицю, стовпець ')+colLetter(s.sheetCol)+'.'+(s.dateFix?' Дата в таблиці: '+s.rawDate+'.':'')};
+    if(!b&&s.needSheet)b={state:'wait',msg:T('Ще не записано в таблицю.')};
+    else if(!b&&s.sheetAt)b={state:'ok',msg:(s.imported?T('З таблиці, стовпець '):T('Записано в таблицю, стовпець '))+colLetter(s.sheetCol)+'.'+(s.dateFix?T(' Дата в таблиці: ')+s.rawDate+'.':'')};
     var h=b?'<p class="bkm '+b.state+'">'+esc(b.msg)+'</p>':'';
-    if(!b||b.state==='err'||b.state==='wait')h+='<button class="retry" data-act="bk" data-key="'+s.key+'">'+(b&&b.state==='err'?'Спробувати ще раз':'Записати в таблицю')+'</button>';
+    if(!b||b.state==='err'||b.state==='wait')h+='<button class="retry" data-act="bk" data-key="'+s.key+'">'+(b&&b.state==='err'?T('Спробувати ще раз'):T('Записати в таблицю'))+'</button>';
     return h;
   }
   function setBk(k,state,msg){
@@ -496,14 +659,14 @@
   function backup(s){
     var k=s.key;
     if(bk[k]&&bk[k].state==='busy')return Promise.resolve(false);
-    setBk(k,'busy','Записую в таблицю…');
+    setBk(k,'busy',T('Записую в таблицю…'));
     return api('write',payloadFor(s)).then(function(j){
       s.sheetCol=j.col-1;
       (j.rows||[]).forEach(function(r){var id=nameToId(r.name);if(id&&EX[id].custom&&EX[id].row!==r.row){EX[id].row=r.row;touchLib(id)}});
       s.sheetAt=Date.now();s.needSheet=false;touch(s);
       var L=colLetter(s.sheetCol);
       delete bk[k];
-      setBk(k,'ok',j.reused?'Оновлено стовпець '+L+' у таблиці.':'Записано в таблицю, стовпець '+L+'.');
+      setBk(k,'ok',j.reused?T('Оновлено стовпець ')+L+T(' у таблиці.'):T('Записано в таблицю, стовпець ')+L+'.');
       return true;
     },function(e){
       setBk(k,(e.code==='offline'||e.code==='no_config')?'wait':'err',errText(e));
@@ -571,7 +734,7 @@
   function impInner(hasImp){
     var h='';
     if(impState)h+='<p class="bkm '+impState.state+'">'+esc(impState.msg)+'</p>';
-    if(!impState||impState.state!=='busy')h+='<button class="retry" data-act="imp">'+(hasImp?'Оновити історію з таблиці':'Імпортувати історію з таблиці')+'</button>';
+    if(!impState||impState.state!=='busy')h+='<button class="retry" data-act="imp">'+(hasImp?T('Оновити історію з таблиці'):T('Імпортувати історію з таблиці'))+'</button>';
     return h;
   }
   function setImp(state,msg){
@@ -586,10 +749,10 @@
   }
   function importHistory(){
     if(impState&&impState.state==='busy')return;
-    setImp('busy','Читаю таблицю…');
+    setImp('busy',T('Читаю таблицю…'));
     loadProgram().then(function(){return api('read')}).then(function(j){
         var g=gridFromApi(j);
-        if(!g.values.length){setImp('err','Таблиця порожня або недоступна.');return}
+        if(!g.values.length){setImp('err',T('Таблиця порожня або недоступна.'));return}
         var r=buildImported(g.values,nameToId,g.colors);
         // власні тренування з апки мають перевагу над тим самим днем з таблиці
         var mine={};
@@ -610,10 +773,10 @@
           sessions[s.key]=s;added++;if(s.dateFix)fixed++;
         });
         saveLocal();
-        var msg='Імпортовано тренувань: '+added+'. Незафарбовані клітинки ('+r.skipped+') пораховано як пропущені.';
-        if(fixed)msg+=' Виправлено дат: '+fixed+' (позначені ≈, якщо дата приблизна).';
-        if(skipped)msg+=' Пропущено '+skipped+', бо вони вже є в апці.';
-        if(r.bad)msg+=' Не вдалося розібрати клітинок: '+r.bad+'.';
+        var msg=T('Імпортовано тренувань: ')+added+T('. Незафарбовані клітинки (')+r.skipped+T(') пораховано як пропущені.');
+        if(fixed)msg+=T(' Виправлено дат: ')+fixed+T(' (позначені ≈, якщо дата приблизна).');
+        if(skipped)msg+=T(' Пропущено ')+skipped+T(', бо вони вже є в апці.');
+        if(r.bad)msg+=T(' Не вдалося розібрати клітинок: ')+r.bad+'.';
         impState={state:'ok',msg:msg};
         if(view==='home')renderHome();
     }).catch(function(e){setImp('err',errText(e))});
@@ -632,12 +795,12 @@
       if(!s.finished||s.date.indexOf(pre)!==0)return;
       (byDate[s.date]=byDate[s.date]||[]).push(s);cnt++;
     });
-    var title=first.toLocaleDateString('uk-UA',{month:'long'});
+    var title=first.toLocaleDateString(LOC,{month:'long'});
     title=title.charAt(0).toUpperCase()+title.slice(1);
-    var h='<div class="calh"><button class="calb" data-act="calp" aria-label="Попередній місяць">‹</button>'+
-      '<div class="calt">'+title+' '+y+'<small>'+(cnt?cnt+' '+plural(cnt,'тренування','тренування','тренувань'):'без тренувань')+'</small></div>'+
-      '<button class="calb" data-act="caln" aria-label="Наступний місяць">›</button></div><div class="calg">';
-    ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].forEach(function(w){h+='<div class="calw">'+w+'</div>'});
+    var h=T('<div class="calh"><button class="calb" data-act="calp" aria-label="Попередній місяць">‹</button>')+
+      '<div class="calt">'+title+' '+y+'<small>'+(cnt?cnt+' '+plural(cnt,T('тренування'),T('тренування'),T('тренувань')):T('без тренувань'))+'</small></div>'+
+      T('<button class="calb" data-act="caln" aria-label="Наступний місяць">›</button></div><div class="calg">');
+    [T('Пн'),T('Вт'),T('Ср'),T('Чт'),T('Пт'),T('Сб'),T('Нд')].forEach(function(w){h+='<div class="calw">'+w+'</div>'});
     for(var i=0;i<lead;i++)h+='<div></div>';
     var today=todayISO();
     for(var d=1;d<=len;d++){
@@ -652,7 +815,7 @@
     h+='</div>';
     return h;
   }
-  function plural(n,one,few,many){var a=n%10,b=n%100;return a===1&&b!==11?one:a>=2&&a<=4&&(b<10||b>=20)?few:many}
+  function plural(n,one,few,many){if(LANG==='en')return n===1?one:many;var a=n%10,b=n%100;return a===1&&b!==11?one:a>=2&&a<=4&&(b<10||b>=20)?few:many}
   function calShift(d){
     if(!calYM)return;
     var t=new Date(calYM[0],calYM[1]+d,1);calYM=[t.getFullYear(),t.getMonth()];
@@ -677,38 +840,38 @@
     var nd=nextDay(), dd=DAYS[nd], today=todayISO();
     var open=null;
     Object.keys(sessions).forEach(function(k){var s=sessions[k];if(s.date===today&&!s.finished&&(!open||s.updated>open.updated))open=s});
-    var h='<div class="top"><div class="tt"><h1 class="brand">Gym Log</h1><div class="date">'+new Date().toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'})+'</div></div><button class="gear" data-act="cfg" aria-label="Налаштування таблиці">⚙</button></div>';
-    if(!cfg.url)h+='<button class="resume" data-act="cfg"><div><b>Підключіть таблицю</b><div class="tag">Щоб підтягнути історію й зберігати резервну копію</div></div><span>Налаштувати</span></button>';
+    var h='<div class="top"><div class="tt"><h1 class="brand">Gym Log</h1><div class="date">'+new Date().toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'long'})+T('</div></div><button class="gear" data-act="exlist" aria-label="Список вправ">☰</button><button class="gear" data-act="cfg" aria-label="Налаштування таблиці">⚙</button></div>');
+    if(!cfg.url)h+=T('<button class="resume" data-act="cfg"><div><b>Підключіть таблицю</b><div class="tag">Щоб підтягнути історію й зберігати резервну копію</div></div><span>Налаштувати</span></button>');
     if(bkFocus&&sessions[bkFocus])h+='<div id="bkbox" class="bkbox" data-key="'+bkFocus+'">'+bkInner(sessions[bkFocus])+'</div>';
     if(open){
-      h+='<div class="resume rs2" id="resume"><button class="rmain" data-act="open" data-key="'+open.key+'"><div><b>Тренування триває</b><div class="tag">'+dayOf(open.day).n+' · '+setsDone(open)+' з '+setsTotal(open)+' підходів</div></div><span>Продовжити</span></button>'+
-        '<button class="rx" data-act="rdel" data-key="'+open.key+'" aria-label="Видалити незавершене тренування">✕</button></div>';
+      h+='<div class="resume rs2" id="resume"><button class="rmain" data-act="open" data-key="'+open.key+T('"><div><b>Тренування триває</b><div class="tag">')+dayOf(open.day).n+' · '+setsDone(open)+T(' з ')+setsTotal(open)+T(' підходів</div></div><span>Продовжити</span></button>')+
+        '<button class="rx" data-act="rdel" data-key="'+open.key+T('" aria-label="Видалити незавершене тренування">✕</button></div>');
     }
-    h+='<div class="hero"><div class="big">'+badge(dd)+'</div><div class="kick">Наступне за чергою</div><h2>'+dd.n+'</h2><div class="meta">'+dd.ids.length+' вправ · останнє '+fmtDate(lastDate(nd))+'</div><button class="cta" data-act="start" data-day="'+nd+'">Почати тренування</button></div>';
-    h+='<div><div class="sec">Усі дні</div><div class="rows">';
+    h+='<div class="hero"><div class="big">'+badge(dd)+T('</div><div class="kick">Наступне за чергою</div><h2>')+dd.n+'</h2><div class="meta">'+dd.ids.length+T(' вправ · останнє ')+fmtDate(lastDate(nd))+'</div><button class="cta" data-act="start" data-day="'+nd+T('">Почати тренування</button></div>');
+    h+=T('<div><div class="sec">Усі дні</div><div class="rows">');
     DAYKEYS.forEach(function(k){
       var d=DAYS[k],l=lastDate(k);
       h+='<button class="row'+(k===nd?' next':'')+'" data-act="preview" data-day="'+k+'"><div class="dn">'+badge(d)+'</div><div><div class="rn">'+d.n+'</div><div class="rs">'+d.sub+'</div></div><div class="rr">'+fmtDate(l)+'<br>'+ago(l)+'</div></button>';
     });
     h+='</div></div>';
-    h+='<div><div class="sec">Календар</div><div class="cal" id="cal">'+calHTML()+'</div></div>';
+    h+=T('<div><div class="sec">Календар</div><div class="cal" id="cal">')+calHTML()+'</div></div>';
     var all=Object.keys(sessions).map(function(k){return sessions[k]}).filter(function(s){return s.finished&&DAYS[s.day]}).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:b.finished-a.finished});
     var hasImp=all.some(function(s){return s.imported});
     var fin=showAll?all:all.slice(0,12);
-    h+='<div><div class="sec">Журнал'+(all.length?' · '+all.length:'')+'</div><div class="rows">';
-    if(!fin.length)h+='<div class="empty">Тут з’являться завершені тренування. Щоб підтягнути всі попередні, імпортуйте їх з таблиці.</div>';
+    h+=T('<div><div class="sec">Журнал')+(all.length?' · '+all.length:'')+'</div><div class="rows">';
+    if(!fin.length)h+=T('<div class="empty">Тут з’являться завершені тренування. Щоб підтягнути всі попередні, імпортуйте їх з таблиці.</div>');
     var lastY=null;
     fin.forEach(function(s){
       var y=s.date.slice(0,4);
       if(lastY&&y!==lastY)h+='<div class="yr">'+y+'</div>';
       lastY=y;
-      h+='<button class="row" data-act="open" data-key="'+s.key+'"><div class="dn">'+badge(DAYS[s.day])+'</div><div><div class="rn">'+DAYS[s.day].n+'</div><div class="rs num">'+setsDone(s)+' підходів · '+volume(s).toLocaleString('uk-UA')+' кг'+(s.imported?'':s.sheetAt?' · в таблиці':'')+'</div></div><div class="rr">'+(s.dateFix==='est'?'≈ ':'')+fmtDate(s.date)+(y!==todayISO().slice(0,4)?'<br>'+y:'')+'</div></button>';
+      h+='<button class="row" data-act="open" data-key="'+s.key+'"><div class="dn">'+badge(DAYS[s.day])+'</div><div><div class="rn">'+DAYS[s.day].n+'</div><div class="rs num">'+setsDone(s)+T(' підходів · ')+volume(s).toLocaleString(LOC)+T(' кг')+(s.imported?'':s.sheetAt?T(' · в таблиці'):'')+'</div></div><div class="rr">'+(s.dateFix==='est'?'≈ ':'')+fmtDate(s.date)+(y!==todayISO().slice(0,4)?'<br>'+y:'')+'</div></button>';
     });
     h+='</div>';
-    if(all.length>fin.length)h+='<button class="more" data-act="more">Показати всі ('+all.length+')</button>';
+    if(all.length>fin.length)h+=T('<button class="more" data-act="more">Показати всі (')+all.length+')</button>';
     h+='<div class="imp" id="imp">'+impInner(hasImp)+'</div></div>';
     var pend=Object.keys(sessions).filter(function(k){return sessions[k].finished&&sessions[k].needSheet}).length;
-    h+='<p class="sync">Записи зберігаються на цьому телефоні. Після завершення тренування апка додає його в таблицю'+(pend?'. Чекають на запис: '+pend+'.':'.')+'</p>';
+    h+=T('<p class="sync">Записи зберігаються на цьому телефоні. Після завершення тренування апка додає його в таблицю')+(pend?T('. Чекають на запис: ')+pend+'.':'.')+'</p>';
     app.innerHTML=h;
     window.scrollTo(0,0);
   }
@@ -731,23 +894,23 @@
     if(!d||!arr)return '';
     if(d.t==='cardio'){
       var on=arr[0].done,cv=cfVals(id,arr[0]),f='';
-      (d.lab||['хв']).forEach(function(l,i){
+      (d.lab||[T('хв')]).forEach(function(l,i){
         f+='<label class="cff" for="cf-'+id+'-'+i+'"><span>'+esc(l)+'</span><input id="cf-'+id+'-'+i+'" type="text" inputmode="decimal" autocomplete="off" value="'+(cv[i]!=null?fw(cv[i]):'')+'" data-ex="'+id+'" data-cf="'+i+'"></label>';
       });
-      return '<section class="ex'+(on?' fin':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id)+(!on?'<button class="later" data-act="later" data-ex="'+id+'">Пізніше</button>':'')+'</div></div>'+
+      return '<section class="ex'+(on?' fin':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id)+(!on?'<button class="later" data-act="later" data-ex="'+id+T('">Пізніше</button>'):'')+'</div></div>'+
         '<div class="cardio'+(on?' on':'')+'"><div class="cfr">'+f+'</div>'+
-        '<button class="cdone" data-act="cardio" data-ex="'+id+'" aria-pressed="'+on+'">'+(on?'Готово ✓':'Позначити')+'</button></div></section>';
+        '<button class="cdone" data-act="cardio" data-ex="'+id+'" aria-pressed="'+on+'">'+(on?T('Готово ✓'):T('Позначити'))+'</button></div></section>';
     }
     var all=arr.every(function(x){return x.done});
     var mixed=arr.some(function(x){return x.w!==arr[0].w});
     var p='';
     arr.forEach(function(x,i){
-      p+='<button class="plate'+(x.done?' on':'')+'" data-act="set" data-ex="'+id+'" data-i="'+i+'" aria-pressed="'+x.done+'" aria-label="Підхід '+(i+1)+', '+repsOf(id,i,x)+' повторень"><b>'+repsOf(id,i,x)+'</b>'+(mixed?'<small>'+fw(x.w)+'</small>':'')+'</button>';
+      p+='<button class="plate'+(x.done?' on':'')+'" data-act="set" data-ex="'+id+'" data-i="'+i+'" aria-pressed="'+x.done+T('" aria-label="Підхід ')+(i+1)+', '+repsOf(id,i,x)+T(' повторень"><b>')+repsOf(id,i,x)+'</b>'+(mixed?'<small>'+fw(x.w)+'</small>':'')+'</button>';
     });
     return '<section class="ex'+(all?' fin':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id)+(d.tag?'<p class="tag">'+d.tag+'</p>':'')+
-      (!all?'<button class="later" data-act="later" data-ex="'+id+'">Пізніше</button>':'')+
-      ((cur.extra||[]).indexOf(id)>=0&&!arr.some(function(x){return x.done})?'<button class="rmx" data-act="rmx" data-ex="'+id+'">Прибрати з тренування</button>':'')+'</div>'+
-      '<div class="wt"><button data-act="wm" data-ex="'+id+'" aria-label="Менше">−</button><label><input id="w-'+id+'" type="text" inputmode="decimal" value="'+fw(curW(arr))+'" data-ex="'+id+'" aria-label="Вага, кг"><span>кг</span></label><button data-act="wp" data-ex="'+id+'" aria-label="Більше">+</button></div></div>'+
+      (!all?'<button class="later" data-act="later" data-ex="'+id+T('">Пізніше</button>'):'')+
+      ((cur.extra||[]).indexOf(id)>=0&&!arr.some(function(x){return x.done})?'<button class="rmx" data-act="rmx" data-ex="'+id+T('">Прибрати з тренування</button>'):'')+'</div>'+
+      '<div class="wt"><button data-act="wm" data-ex="'+id+T('" aria-label="Менше">−</button><label><input id="w-')+id+'" type="text" inputmode="decimal" value="'+fw(curW(arr))+'" data-ex="'+id+T('" aria-label="Вага, кг"><span>кг</span></label><button data-act="wp" data-ex="')+id+T('" aria-label="Більше">+</button></div></div>')+
       '<div class="plates">'+p+'</div></section>';
   }
   function progress(){
@@ -756,16 +919,16 @@
     if(c)c.textContent=d+' / '+t;
     if(b)b.style.width=(t?d/t*100:0)+'%';
     var sm=document.getElementById('sum');
-    if(sm)sm.textContent=d+' підходів · '+volume(cur).toLocaleString('uk-UA')+' кг сумарно';
+    if(sm)sm.textContent=d+T(' підходів · ')+volume(cur).toLocaleString(LOC)+T(' кг сумарно');
   }
   function renderWorkout(){
     view='workout';
     var dd=dayOf(cur.day);
-    var h='<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="Назад">‹</button><h2>'+dd.n+'</h2><div class="cnt num" id="pc"></div><button class="back" data-act="ord" aria-label="Змінити порядок вправ">⇅</button></div><div class="bar"><i id="pb"></i></div></div>'+
-      (cur.draft?'<div class="draft" id="draftb"><p>Перегляд. Тренування почнеться, коли натиснете кнопку або відмітите перший підхід.</p><button class="cta" data-act="begin">Почати тренування</button></div>':'')+
+    var h=T('<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="Назад">‹</button><h2>')+dd.n+T('</h2><div class="cnt num" id="pc"></div><button class="back" data-act="ord" aria-label="Змінити порядок вправ">⇅</button></div><div class="bar"><i id="pb"></i></div></div>')+
+      (cur.draft?T('<div class="draft" id="draftb"><p>Перегляд. Тренування почнеться, коли натиснете кнопку або відмітите перший підхід.</p><button class="cta" data-act="begin">Почати тренування</button></div>'):'')+
       '<div class="list">';
     sIds(cur).forEach(function(id){h+=cardHTML(id)});
-    h+='</div><button class="addx" data-act="padd">+ Додати вправу</button><button class="finish" id="finb" data-act="finish"'+(cur.draft?' hidden':'')+'>'+(cur.finished?'Зберегти зміни':'Завершити тренування')+'</button><p class="summary num" id="sum"></p><div id="bkbox" class="bkbox" data-key="'+cur.key+'">'+bkInner(cur)+'</div>';
+    h+=T('</div><button class="addx" data-act="padd">+ Додати вправу</button><button class="finish" id="finb" data-act="finish"')+(cur.draft?' hidden':'')+'>'+(cur.finished?T('Зберегти зміни'):T('Завершити тренування'))+'</button><p class="summary num" id="sum"></p><div id="bkbox" class="bkbox" data-key="'+cur.key+'">'+bkInner(cur)+'</div>';
     app.innerHTML=h;
     progress();
     window.scrollTo(0,0);
@@ -793,26 +956,26 @@
     return {base:base,mine:mine};
   }
   function pkRow(id){
-    var d=EX[id],sub=d.custom?(d.s.length+'×'+d.s[0][0]+(d.s[0][1]?' · '+fw(d.s[0][1])+' кг':'')+(d.ready?'':(d.days&&d.days.length&&DAYS[d.days[0]]?' · після завершення стане частиною дня «'+DAYS[d.days[0]].n+'»':' · з’явиться в списку після завершення'))):(dayNamesFor(id).join(', ')||'без дня в програмі');
+    var d=EX[id],sub=d.custom?(d.s.length+'×'+d.s[0][0]+(d.s[0][1]?' · '+fw(d.s[0][1])+T(' кг'):'')+(d.ready?'':(d.days&&d.days.length&&DAYS[d.days[0]]?T(' · після завершення стане частиною дня «')+DAYS[d.days[0]].n+'»':T(' · з’явиться в списку після завершення')))):(dayNamesFor(id).join(', ')||T('без дня в програмі'));
     return '<button class="pkr" data-act="ppick" data-ex="'+id+'" data-n="'+esc(norm(d.n+' '+(d.tag||'')))+'"><span>'+esc(d.n)+'</span><small>'+esc(sub)+'</small></button>';
   }
   function openPicker(){
     if(!cur)return;
     var L=libList(),h='';
-    h+='<div class="pkp" role="dialog" aria-label="Додати вправу"><div class="pkh"><h2>Додати вправу</h2><button class="back" data-act="pclose" aria-label="Закрити">×</button></div>';
-    h+='<div class="pkt"><button data-act="ptab" data-tab="l" class="on">З наявних</button><button data-act="ptab" data-tab="n">Нова</button></div>';
-    h+='<div id="pk-l"><input class="in" id="pkq" type="search" placeholder="Пошук" autocomplete="off" aria-label="Пошук вправи">';
-    if(L.mine.length){h+='<div class="sec pks">Мої вправи</div>';L.mine.forEach(function(id){h+=pkRow(id)})}
-    if(L.base.length){h+='<div class="sec pks">Інші дні</div>';L.base.forEach(function(id){h+=pkRow(id)})}
-    if(!L.mine.length&&!L.base.length)h+='<p class="empty">Усі наявні вправи вже в цьому тренуванні.</p>';
+    h+=T('<div class="pkp" role="dialog" aria-label="Додати вправу"><div class="pkh"><h2>Додати вправу</h2><button class="back" data-act="pclose" aria-label="Закрити">×</button></div>');
+    h+=T('<div class="pkt"><button data-act="ptab" data-tab="l" class="on">З наявних</button><button data-act="ptab" data-tab="n">Нова</button></div>');
+    h+=T('<div id="pk-l"><input class="in" id="pkq" type="search" placeholder="Пошук" autocomplete="off" aria-label="Пошук вправи">');
+    if(L.mine.length){h+=T('<div class="sec pks">Мої вправи</div>');L.mine.forEach(function(id){h+=pkRow(id)})}
+    if(L.base.length){h+=T('<div class="sec pks">Інші дні</div>');L.base.forEach(function(id){h+=pkRow(id)})}
+    if(!L.mine.length&&!L.base.length)h+=T('<p class="empty">Усі наявні вправи вже в цьому тренуванні.</p>');
     h+='</div>';
-    h+='<div id="pk-n" class="pkf" hidden><label for="nn">Назва<input class="in" id="nn" type="text" maxlength="60" autocomplete="off" placeholder="Наприклад, молоткові згинання"></label>'+
-       '<div class="pkg"><label for="ns">Підходи<input class="in" id="ns" type="number" inputmode="numeric" min="1" max="10" value="3"></label>'+
-       '<label for="nr">Повтори<input class="in" id="nr" type="number" inputmode="numeric" min="1" max="100" value="10"></label>'+
-       '<label for="nw">Вага, кг<input class="in" id="nw" type="text" inputmode="decimal" value="0"></label></div>'+
+    h+=T('<div id="pk-n" class="pkf" hidden><label for="nn">Назва<input class="in" id="nn" type="text" maxlength="60" autocomplete="off" placeholder="Наприклад, молоткові згинання"></label>')+
+       T('<div class="pkg"><label for="ns">Підходи<input class="in" id="ns" type="number" inputmode="numeric" min="1" max="10" value="3"></label>')+
+       T('<label for="nr">Повтори<input class="in" id="nr" type="number" inputmode="numeric" min="1" max="100" value="10"></label>')+
+       T('<label for="nw">Вага, кг<input class="in" id="nw" type="text" inputmode="decimal" value="0"></label></div>')+
        '<p class="pkerr" id="pkerr" role="alert"></p>'+
-       '<button class="cta" type="button" data-act="pnew">Створити й додати</button>'+
-       '<p class="sync">'+(cur.day!=='X'&&DAYS[cur.day]?'Коли ви завершите тренування, вправа стане частиною дня «'+esc(DAYS[cur.day].n)+'» і з’явиться у вкладці «Програма».':'Коли ви завершите тренування, вправа з’явиться у вкладці «Програма» (без дня).')+' У журналі для неї додасться окремий рядок.</p></div></div>';
+       T('<button class="cta" type="button" data-act="pnew">Створити й додати</button>')+
+       '<p class="sync">'+(cur.day!=='X'&&DAYS[cur.day]?T('Коли ви завершите тренування, вправа стане частиною дня «')+esc(DAYS[cur.day].n)+T('» і з’явиться у вкладці «Програма».'):T('Коли ви завершите тренування, вправа з’явиться у вкладці «Програма» (без дня).'))+T(' У журналі для неї додасться окремий рядок.</p></div></div>');
     pk.innerHTML=h;pk.hidden=false;
   }
   function closePicker(){pk.hidden=true;pk.innerHTML=''}
@@ -867,9 +1030,9 @@
     var r=Math.min(100,Math.max(1,parseInt((document.getElementById('nr')||{}).value,10)||10));
     var w=parseFloat(String((document.getElementById('nw')||{}).value||'0').replace(',','.'));
     if(isNaN(w)||w<0)w=0;
-    if(!nm){if(err)err.textContent='Введіть назву вправи.';return}
+    if(!nm){if(err)err.textContent=T('Введіть назву вправи.');return}
     var clash=Object.keys(EX).some(function(id){return norm(EX[id].n)===norm(nm)});
-    if(clash){if(err)err.textContent='Вправа з такою назвою вже є. Знайдіть її у вкладці «З наявних».';return}
+    if(clash){if(err)err.textContent=T('Вправа з такою назвою вже є. Знайдіть її у вкладці «З наявних».');return}
     var id='x'+Date.now().toString(36);
     // нова вправа належить дню, в якому її створили
     var d={n:nm,j:nm,days:(DAYS[cur.day]&&cur.day!=='X')?[cur.day]:[],s:S(n,r,w),custom:1,from:cur.key,ready:false};
@@ -879,28 +1042,31 @@
 
   /* ---------- settings ---------- */
   function openSettings(){
-    pk.innerHTML='<div class="pkp" role="dialog" aria-label="Налаштування таблиці"><div class="pkh"><h2>Таблиця</h2><button class="back" data-act="pclose" aria-label="Закрити">×</button></div>'+
-      '<div class="pkf"><label for="cu">Адреса скрипта (Web app URL)<input class="in" id="cu" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(cfg.url)+'"></label>'+
-      '<label for="ct">Ключ із скрипта<input class="in" id="ct" type="text" autocomplete="off" spellcheck="false" value="'+esc(cfg.token)+'"></label>'+
+    pk.innerHTML=T('<div class="pkp" role="dialog" aria-label="Налаштування таблиці"><div class="pkh"><h2>Таблиця</h2><button class="back" data-act="pclose" aria-label="Закрити">×</button></div>')+
+      T('<div class="pkf"><label for="cu">Адреса скрипта (Web app URL)<input class="in" id="cu" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="')+esc(cfg.url)+'"></label>'+
+      T('<label for="ct">Ключ із скрипта<input class="in" id="ct" type="text" autocomplete="off" spellcheck="false" value="')+esc(cfg.token)+'"></label>'+
       '<p class="pkerr" id="cerr" role="status"></p>'+
-      '<button class="cta" type="button" data-act="csave">Зберегти й перевірити</button>'+
-      '<p class="sync">Адреса й ключ зберігаються тільки на цьому пристрої. Як їх отримати, описано в README репозиторію.</p></div>'+
-      '<div class="pkf upd"><div class="sec">Апка</div><p class="sync">Версія '+APP_VERSION+'. Якщо після змін нова версія не з’явилась, оновіть вручну. Тренування й налаштування залишаться.</p>'+
-      '<button class="retry" type="button" data-act="upd" id="updb">Оновити апку</button></div></div>';
+      T('<button class="cta" type="button" data-act="csave">Зберегти й перевірити</button>')+
+      T('<p class="sync">Адреса й ключ зберігаються тільки на цьому пристрої. Як їх отримати, описано в README репозиторію.</p></div>')+
+      T('<div class="pkf upd"><div class="sec">Апка</div><p class="sync">Версія ')+APP_VERSION+T('. Якщо після змін нова версія не з’явилась, оновіть вручну. Тренування й налаштування залишаться.</p>')+
+      T('<button class="retry" type="button" data-act="upd" id="updb">Оновити апку</button></div>')+
+      '<div class="pkf upd"><div class="sec">Мова · Language</div><div class="langs">'+
+      '<button class="retry'+(LANG==='uk'?' on':'')+'" type="button" data-act="lang" data-l="uk">Українська</button>'+
+      '<button class="retry'+(LANG==='en'?' on':'')+'" type="button" data-act="lang" data-l="en">English</button></div></div></div>';
     pk.hidden=false;
   }
   function saveSettings(){
     var u=String(document.getElementById('cu').value||'').trim(),t=String(document.getElementById('ct').value||'').trim(),m=document.getElementById('cerr');
     m.className='pkerr';
-    if(!/^https:\/\/script\.google\.com\/(a\/[^\/]+\/)?macros\/s\/[^\/]+\/exec$/.test(u)){m.textContent='Адреса має виглядати так: https://script.google.com/macros/s/…/exec';return}
-    if(!t){m.textContent='Вставте ключ, який ви вписали в скрипт.';return}
+    if(!/^https:\/\/script\.google\.com\/(a\/[^\/]+\/)?macros\/s\/[^\/]+\/exec$/.test(u)){m.textContent=T('Адреса має виглядати так: https://script.google.com/macros/s/…/exec');return}
+    if(!t){m.textContent=T('Вставте ключ, який ви вписали в скрипт.');return}
     cfg={url:u,token:t};saveCfg();
-    m.textContent='Перевіряю…';
+    m.textContent=T('Перевіряю…');
     api('ping').then(function(j){
       m.className='pkerr okc';
-      m.textContent='З’єднано з таблицею «'+(j.title||'')+'». Завантажую програму…';
+      m.textContent=T('З’єднано з таблицею «')+(j.title||'')+T('». Завантажую програму…');
       loadProgram().then(function(ok){
-        m.textContent='З’єднано з таблицею «'+(j.title||'')+'».'+(ok?' Програму завантажено з вкладки «Програма».':'');
+        m.textContent=T('З’єднано з таблицею «')+(j.title||'')+'».'+(ok?T(' Програму завантажено з вкладки «Програма».'):'');
         syncPending();
       });
     },function(e){m.textContent=errText(e)});
@@ -910,7 +1076,7 @@
   // Дані в localStorage (тренування, налаштування) не чіпаємо.
   function updateApp(){
     var b=document.getElementById('updb');
-    if(b){b.disabled=true;b.textContent='Оновлюю…'}
+    if(b){b.disabled=true;b.textContent=T('Оновлюю…')}
     var p=Promise.resolve();
     try{if('serviceWorker' in navigator)p=navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(r){return r.unregister()}))})}catch(e){}
     p.then(function(){return window.caches?caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k)}))}):null})
@@ -922,17 +1088,17 @@
   /* ---------- зміна порядку вправ ---------- */
   function openOrder(){
     if(!cur)return;
-    var ids=sIds(cur),h='<div class="pkp" role="dialog" aria-label="Порядок вправ"><div class="pkh"><h2>Порядок вправ</h2><button class="back" data-act="odone" aria-label="Готово">×</button></div><div class="olist">';
+    var ids=sIds(cur),h=T('<div class="pkp" role="dialog" aria-label="Порядок вправ"><div class="pkh"><h2>Порядок вправ</h2><button class="back" data-act="odone" aria-label="Готово">×</button></div><div class="olist">');
     ids.forEach(function(id,i){
       var d=EX[id];if(!d)return;
       h+='<div class="orow'+(anyDone(cur.ex[id])?' odone':'')+'" data-id="'+id+'"><span class="odrag" aria-hidden="true">≡</span><span class="on num">'+(i+1)+'</span><span class="onm">'+esc(d.n)+'</span>'+
-        '<button class="ob" data-act="omv" data-ex="'+id+'" data-d="-1" aria-label="Вище"'+(i===0?' disabled':'')+'>↑</button>'+
-        '<button class="ob" data-act="omv" data-ex="'+id+'" data-d="1" aria-label="Нижче"'+(i===ids.length-1?' disabled':'')+'>↓</button></div>';
+        '<button class="ob" data-act="omv" data-ex="'+id+T('" data-d="-1" aria-label="Вище"')+(i===0?' disabled':'')+'>↑</button>'+
+        '<button class="ob" data-act="omv" data-ex="'+id+T('" data-d="1" aria-label="Нижче"')+(i===ids.length-1?' disabled':'')+'>↓</button></div>';
     });
-    h+='</div><button class="retry" data-act="ofreq">Як найчастіше виконую</button>'+
-      (cur.day!=='X'?'<button class="cta" data-act="osave">Зберегти для наступних тренувань «'+esc(dayOf(cur.day).n)+'»</button>':'')+
+    h+=T('</div><button class="retry" data-act="ofreq">Як найчастіше виконую</button>')+
+      (cur.day!=='X'?T('<button class="cta" data-act="osave">Зберегти для наступних тренувань «')+esc(dayOf(cur.day).n)+'»</button>':'')+
       '<p class="pkerr" id="omsg" role="status"></p>'+
-      '<p class="sync">Перетягуйте вправи за ≡ або стрілками. Без збереження зміни діють лише в цьому тренуванні. «Як найчастіше виконую» ставить нагору вправи, які ви робите найчастіше, а пропущені — вниз.</p></div>';
+      T('<p class="sync">Перетягуйте вправи за ≡ або стрілками. Без збереження зміни діють лише в цьому тренуванні. «Як найчастіше виконую» ставить нагору вправи, які ви робите найчастіше, а пропущені — вниз.</p></div>');
     pk.innerHTML=h;pk.hidden=false;
   }
   function moveOrd(id,dir){
@@ -984,6 +1150,46 @@
   });
   function renderWorkoutKeep(){var y=window.scrollY;renderWorkout();window.scrollTo(0,y)}
 
+  /* ---------- екран «Вправи» ---------- */
+  function exSummary(id){
+    var d=EX[id];if(!d)return '';
+    if(d.t==='cardio')return (d.lab||[]).map(function(l,i){return l+' '+(d.cf[i]!=null?fw(d.cf[i]):'')}).join(' · ');
+    var w=d.s.map(function(x){return x[1]}),same=w.every(function(v){return v===w[0]});
+    return d.s.length+'×'+d.s[0][0]+(w[0]||!same?' · '+(same?fw(w[0]):w.map(fw).join('/'))+T(' кг'):'');
+  }
+  function lastDoneDate(id){
+    var best=null;
+    Object.keys(sessions).forEach(function(k){var s=sessions[k];if(s.finished&&s.ex&&s.ex[id]&&anyDone(s.ex[id])&&(!best||s.date>best))best=s.date});
+    return best;
+  }
+  function exRow(id){
+    var d=EX[id],l=lastDoneDate(id);
+    return '<button class="row exr" data-act="info" data-ex="'+id+'" data-n="'+esc(normName(d.n+' '+(d.j||'')+' '+(d.tag||'')))+'">'+
+      '<div class="exi">'+(window.GymAnim&&GymAnim.has(id)?'<span class="dot" aria-hidden="true">▶</span>':'')+'</div>'+
+      '<div><div class="rn">'+esc(d.n)+'</div><div class="rs">'+esc(exSummary(id))+'</div></div>'+
+      '<div class="rr">'+(l?fmtDate(l)+(l.slice(0,4)!==todayISO().slice(0,4)?'<br>'+l.slice(0,4):''):'—')+'</div></button>';
+  }
+  function renderExList(){
+    view='exlist';cur=null;
+    var h='<div class="wh"><div class="l1"><button class="back" data-act="home" aria-label="'+T('Назад')+'">‹</button><h2>'+T('Вправи')+'</h2></div></div>'+
+      '<input class="in" id="exq" type="search" placeholder="'+T('Пошук вправи')+'" autocomplete="off" aria-label="'+T('Пошук вправи')+'">';
+    var seen={};
+    DAYKEYS.forEach(function(k){
+      var ids=orderFor(k);if(!ids.length)return;
+      h+='<div class="exg"><div class="sec exh2"><span class="dn">'+badge(DAYS[k])+'</span>'+esc(DAYS[k].n)+'</div><div class="rows">';
+      ids.forEach(function(id){if(EX[id]){h+=exRow(id);seen[id]=1}});
+      h+='</div></div>';
+    });
+    var rest=Object.keys(EX).filter(function(id){return !seen[id]&&(!EX[id].custom||EX[id].ready)});
+    if(rest.length){
+      h+='<div class="exg"><div class="sec">'+T('Без дня')+'</div><div class="rows">';
+      rest.forEach(function(id){h+=exRow(id)});
+      h+='</div></div>';
+    }
+    h+='<p class="sync">'+T('Натисніть на вправу, щоб побачити схему руху, медіа й останні результати. Програму можна змінити у вкладці «Програма» таблиці.')+'</p>';
+    app.innerHTML=h;window.scrollTo(0,0);
+  }
+
   /* ---------- деталі вправи ---------- */
   function titleBtn(id){
     var d=EX[id];
@@ -996,7 +1202,7 @@
       if(!/^https?:\/\//i.test(u))return;
       var m=u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]+)/);
       if(m)u='https://drive.google.com/thumbnail?id='+m[1]+'&sz=w1000';
-      if(/youtube\.com|youtu\.be|vimeo\.com|instagram\.com|tiktok\.com/i.test(u))h+='<a class="retry mlink" href="'+esc(u)+'" target="_blank" rel="noopener">▶ Відкрити відео</a>';
+      if(/youtube\.com|youtu\.be|vimeo\.com|instagram\.com|tiktok\.com/i.test(u))h+='<a class="retry mlink" href="'+esc(u)+T('" target="_blank" rel="noopener">▶ Відкрити відео</a>');
       else if(/\.(mp4|webm|mov)(\?|#|$)/i.test(u))h+='<video class="media" src="'+esc(u)+'" autoplay loop muted playsinline></video>';
       else h+='<img class="media" src="'+esc(u)+'" alt="" loading="lazy">';
     });
@@ -1022,20 +1228,20 @@
   function openInfo(id){
     var d=EX[id];if(!d)return;
     var q=(String(d.j||d.n).split('/')[0].replace(/\(.*?\)/g,'').trim()||d.n)+' exercise';
-    var h='<div class="pkp" role="dialog" aria-label="'+esc(d.n)+'"><div class="pkh"><h2>'+esc(d.n)+'</h2><button class="back" data-act="pclose" aria-label="Закрити">×</button></div>';
+    var h='<div class="pkp" role="dialog" aria-label="'+esc(d.n)+'"><div class="pkh"><h2>'+esc(d.n)+T('</h2><button class="back" data-act="pclose" aria-label="Закрити">×</button></div>');
     var sub=[];
     if(d.j&&normName(d.j)!==normName(d.n))sub.push(d.j);
     if(d.tag&&normName(d.tag)!==normName(d.j))sub.push(d.tag);
     if(sub.length)h+='<p class="sync">'+esc(sub.join(' · '))+'</p>';
     var hasAnim=!!(window.GymAnim&&GymAnim.has(id)),md=mediaHTML(d.media);
-    var col=cur&&DAYS[cur.day]&&cur.day!=='X'?DAYS[cur.day].color:'var(--accent)';
+    var col=cur&&DAYS[cur.day]&&cur.day!=='X'?DAYS[cur.day].color:(EX[id].days&&EX[id].days[0]&&DAYS[EX[id].days[0]]?DAYS[EX[id].days[0]].color:'var(--accent)');
     if(hasAnim)h+='<div class="animbox" style="color:'+col+'"><div id="animv">'+GymAnim.frame(id,0)+'</div></div>';
     if(md)h+='<div class="mbox">'+md+'</div>';
-    else h+='<p class="sync">'+(hasAnim?'Схема руху. ':'')+'Фото свого тренажера, GIF чи відео можна додати у вкладці «Програма», колонка «Медіа».</p>';
-    h+='<a class="retry mlink" href="https://www.youtube.com/results?search_query='+encodeURIComponent(q)+'" target="_blank" rel="noopener">Знайти відео на YouTube</a>';
+    else h+='<p class="sync">'+(hasAnim?T('Схема руху. '):'')+T('Фото свого тренажера, GIF чи відео можна додати у вкладці «Програма», колонка «Медіа».</p>');
+    h+='<a class="retry mlink" href="https://www.youtube.com/results?search_query='+encodeURIComponent(q)+T('" target="_blank" rel="noopener">Знайти відео на YouTube</a>');
     var hist=exHistory(id);
     if(hist.length){
-      h+='<div class="sec pks">Останні результати</div><div class="hist">';
+      h+=T('<div class="sec pks">Останні результати</div><div class="hist">');
       hist.forEach(function(s){h+='<div class="hrow"><span>'+fmtDate(s.date)+(s.date.slice(0,4)!==todayISO().slice(0,4)?' '+s.date.slice(0,4):'')+'</span><b class="num">'+esc(cellText(id,s.ex[id]))+'</b></div>'});
       h+='</div>';
     }
@@ -1044,7 +1250,7 @@
     if(hasAnim)playAnim(id);
     // зламане посилання: замість порожньої рамки — пояснення
     pk.querySelectorAll('img.media,video.media').forEach(function(el){el.addEventListener('error',function(){
-      var p=document.createElement('p');p.className='sync';p.textContent='Не вдалося показати медіа за посиланням. Перевірте, що воно відкривається без входу.';el.replaceWith(p);
+      var p=document.createElement('p');p.className='sync';p.textContent=T('Не вдалося показати медіа за посиланням. Перевірте, що воно відкривається без входу.');el.replaceWith(p);
     })});
   }
 
@@ -1071,9 +1277,9 @@
   function tick(){
     var left=Math.ceil((restEnd-Date.now())/1000);
     var t=document.getElementById('restT'),l=document.getElementById('restL');
-    if(left>0){t.textContent=mmss(left);l.textContent='відпочинок';restEl.classList.remove('over');return}
+    if(left>0){t.textContent=mmss(left);l.textContent=T('відпочинок');restEl.classList.remove('over');return}
     if(!restEl.classList.contains('over')){
-      restEl.classList.add('over');t.textContent='0:00';l.textContent='час наступного підходу';beep();
+      restEl.classList.add('over');t.textContent='0:00';l.textContent=T('час наступного підходу');beep();
       clearInterval(restIv);restIv=null;
       setTimeout(function(){if(restEl.classList.contains('over'))hideRest()},8000);
     }
@@ -1155,6 +1361,8 @@
     else if(act==='cfg')openSettings();
     else if(act==='csave')saveSettings();
     else if(act==='upd')updateApp();
+    else if(act==='exlist')renderExList();
+    else if(act==='lang'){try{localStorage.setItem('gym.lang.v1',b.getAttribute('data-l'))}catch(e){}location.reload()}
     else if(act==='info')openInfo(id);
     else if(act==='later'){
       // тренажер зайнятий: вправа йде в кінець списку цього тренування
@@ -1166,19 +1374,19 @@
     else if(act==='omv'){moveOrd(id,parseInt(b.getAttribute('data-d'),10))}
     else if(act==='ofreq'){cur.order=freqOrder(cur.day).filter(function(x){return cur.ex[x]});sIds(cur).forEach(function(x){if(cur.order.indexOf(x)<0)cur.order.push(x)});touch(cur);openOrder()}
     else if(act==='osave'){
-      var om=document.getElementById('omsg');if(om){om.className='pkerr';om.textContent='Зберігаю…'}
+      var om=document.getElementById('omsg');if(om){om.className='pkerr';om.textContent=T('Зберігаю…')}
       saveDayOrder(cur.day,sIds(cur)).then(function(ok){
         var m2=document.getElementById('omsg');if(!m2)return;
         m2.className='pkerr okc';
-        m2.textContent=ok?'Збережено. Наступні тренування цього дня йтимуть у такому порядку.':'Збережено на телефоні. У таблицю запишеться, коли оновите скрипт.';
+        m2.textContent=ok?T('Збережено. Наступні тренування цього дня йтимуть у такому порядку.'):T('Збережено на телефоні. У таблицю запишеться, коли оновите скрипт.');
       });
     }
     else if(act==='odone'){closePicker();renderWorkoutKeep()}
     else if(act==='rdel'){
       // підтвердження прямо в картці, без системних діалогів
       var rc=document.getElementById('resume'),dk=b.getAttribute('data-key'),ds=sessions[dk];
-      if(rc&&ds)rc.innerHTML='<div class="rq"><b>Видалити незавершене тренування?</b><div class="tag">'+esc(dayOf(ds.day).n)+' · відмічено підходів: '+setsDone(ds)+'. У таблиці нічого не зміниться.</div></div>'+
-        '<div class="rqb"><button class="retry" data-act="rdelno">Ні</button><button class="retry danger" data-act="rdelyes" data-key="'+dk+'">Видалити</button></div>';
+      if(rc&&ds)rc.innerHTML=T('<div class="rq"><b>Видалити незавершене тренування?</b><div class="tag">')+esc(dayOf(ds.day).n)+T(' · відмічено підходів: ')+setsDone(ds)+T('. У таблиці нічого не зміниться.</div></div>')+
+        T('<div class="rqb"><button class="retry" data-act="rdelno">Ні</button><button class="retry danger" data-act="rdelyes" data-key="')+dk+T('">Видалити</button></div>');
     }
     else if(act==='rdelno')renderHome();
     else if(act==='rdelyes'){
@@ -1193,6 +1401,12 @@
     else if(act==='more'){showAll=true;var y=window.scrollY;renderHome();window.scrollTo(0,y)}
   }
   app.addEventListener('click',onClick);
+  app.addEventListener('input',function(e){
+    if(e.target.id!=='exq')return;
+    var q=normName(e.target.value);
+    app.querySelectorAll('.exr').forEach(function(r){r.hidden=!!q&&r.getAttribute('data-n').indexOf(q)<0});
+    app.querySelectorAll('.exg').forEach(function(g){g.hidden=!g.querySelector('.exr:not([hidden])')});
+  });
   pk.addEventListener('click',onClick);
   pk.addEventListener('input',function(e){
     if(e.target.id!=='pkq')return;
@@ -1223,10 +1437,29 @@
   });
 
   renderHome();
+  // статичні написи з index.html
+  document.documentElement.lang=LANG;
+  if(LANG==='en'){
+    var rl=document.getElementById('restL');if(rl)rl.textContent='rest';
+    [['rm','Minus 15 seconds'],['rp','Plus 15 seconds']].forEach(function(x){var el=restEl.querySelector('[data-act="'+x[0]+'"]');if(el)el.setAttribute('aria-label',x[1])});
+    var nx=restEl.querySelector('[data-act="rs"]');if(nx)nx.textContent='Next';
+  }
   // Офлайн-режим і запис того, що не дійшло до таблиці
   // гортання місяців свайпом по календарю
   var tx=null,ty=null;
   app.addEventListener('touchstart',function(e){var c=e.target.closest&&e.target.closest('#cal');if(!c||e.touches.length!==1){tx=null;return}tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+  var sx=null,sy=null;
+  app.addEventListener('touchstart',function(e){
+    if(e.touches.length!==1||(e.target.closest&&e.target.closest('#cal,input,.orow'))){sx=null;return}
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;
+  },{passive:true});
+  app.addEventListener('touchend',function(e){
+    if(sx==null)return;
+    var t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;sx=null;
+    if(Math.abs(dx)<70||Math.abs(dx)<Math.abs(dy)*1.8||!pk.hidden)return;
+    if(view==='home'&&dx>0)renderExList();
+    else if(view==='exlist'&&dx<0)renderHome();
+  },{passive:true});
   app.addEventListener('touchend',function(e){
     if(tx==null)return;
     var t=e.changedTouches[0],dx=t.clientX-tx,dy=t.clientY-ty;tx=null;
@@ -1243,7 +1476,7 @@
       // нова версія готова; не перезавантажуємо посеред тренування, а пропонуємо
       if(document.getElementById('newv'))return;
       var d=document.createElement('button');d.id='newv';d.className='newv';d.type='button';
-      d.textContent='Є нова версія апки. Натисніть, щоб оновити';
+      d.textContent=T('Є нова версія апки. Натисніть, щоб оновити');
       d.addEventListener('click',function(){location.reload()});
       document.body.appendChild(d);
     });
