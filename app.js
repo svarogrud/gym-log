@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  var APP_VERSION='35';
+  var APP_VERSION='36';
   var NEED_SCRIPT=6; // має збігатися з SCRIPT_VERSION у apps-script/Code.gs
   // Мова інтерфейсу: українська або англійська (⚙ → Мова). За замовчуванням — мова телефона.
   var LANG='uk';
@@ -338,7 +338,7 @@
       ['triceps pressdown','Трицепс на блоці','сила','3','3','10','18','triceps pressdown','tri','','Triceps pressdown'],
       ['тріцепс за голову','Трицепс за головою','сила','3','3','10','7.5; 10; 10','','tri2','','Overhead triceps extension'],
       ['low row','Нижня тяга','сила','3','3','10','45','low row','lrow','','Low row'],
-      ['leg extension  (5,1,3)','Розгинання ніг','сила','1','3','10','36','налаштування 5, 1, 3','lext','','Leg extension'],
+      ['leg extension  (5,1,3)','Розгинання ніг','сила','1','3','10','36','leg extension','lext','','Leg extension','','','5, 1, 3'],
       ['leg curl','Згинання ніг','сила','1','3','10','36','leg curl','lcurl','','Seated leg curl'],
       ['hip adductor / в середину ><','Зведення ніг','сила','1','3','10','43','hip adductor, до середини','add','','Hip adductor'],
       ['hip abductor / назовні  <>','Розведення ніг','сила','1','3','15','50','hip abductor, назовні','abd','','Hip abductor'],
@@ -347,7 +347,7 @@
       ['ікри стоячи','Ікри стоячи','сила','1','3','10','50','','calfs','','Standing calf raise'],
       ['ікри сидячи','Ікри сидячи','сила','1','3','15','30','','calft','','Seated calf raise'],
       ['prone leg curl / лежачи','Згинання ніг лежачи','сила','1','3','10','32','prone leg curl','plc','','Lying leg curl'],
-      ['leg press (4)','Жим ногами','сила','1','3','15','59','налаштування 4','lpress','','Leg press']
+      ['leg press (4)','Жим ногами','сила','1','3','15','59','leg press','lpress','','Leg press','','','4']
     ]
   };
   // Нові вправи, яких бракувало в програмі. Не входять у план, поки їх не додати в день
@@ -630,7 +630,7 @@
   }
   /*IMPORT-END*/
   var LS='gym.sessions.v1', LSR='gym.rest.v1', LSL='gym.lib.v1';
-  var sessions={}, custom={}, cur=null, view='home', restSec=90;
+  var sessions={}, custom={}, cur=null, view='home', restSec=60;
   var app=document.getElementById('app'), pk=document.getElementById('picker');
 
   function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
@@ -726,7 +726,8 @@
       o.pending=false;DAYS[k].order=o.ids.slice();saveOrd();return true;
     },function(){return false});
   }
-  restSec=parseInt(lsGet(LSR)||'90',10)||90;
+  if(lsGet(LSR)==='90'&&!lsGet('gym.rest60'))lsSet(LSR,'60');lsSet('gym.rest60','1');
+  restSec=parseInt(lsGet(LSR)||'60',10)||60;
 
   function daysAgoISO(n){var d=new Date();d.setDate(d.getDate()-n);return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
   function todayISO(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
@@ -1177,7 +1178,7 @@
     });
     var doneW=arr.filter(function(x){return x.done}).map(function(x){return x.w}),shownW=doneW.length?doneW[0]:curW(arr);
     var nd=arr.filter(function(q){return q.done}).length,st=all?'done':nd?'part':(lk||cur.finished?'skip':'todo');
-    return '<section class="ex st-'+st+(all?' fin':'')+(lk?' lk':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id,st,nd,arr.length)+(d.tag?'<p class="tag">'+d.tag+'</p>':'')+
+    return '<section class="ex st-'+st+(all?' fin':'')+(lk?' lk':'')+'" id="c-'+id+'"><div class="exh"><div>'+titleBtn(id,st,nd,arr.length)+(function(){var su=personal(id,'setup'),t=[d.tag?esc(d.tag):'',su?'⚙ '+esc(su):''].filter(Boolean).join(' · ');return t?'<p class="tag">'+t+'</p>':''})()+
       (!all&&!lk?'<button class="later" data-act="later" data-ex="'+id+T('">Пізніше</button>'):'')+
       (!nd&&!lk&&similar(id).some(function(o){return !cur.ex[o.id]})?'<button class="later" data-act="swapl" data-ex="'+id+'">⇄ '+T('Замінити')+'</button>':'')+
       (!lk&&(cur.extra||[]).indexOf(id)>=0&&!arr.some(function(x){return x.done})?'<button class="rmx" data-act="rmx" data-ex="'+id+T('">Прибрати з тренування</button>'):'')+'</div>'+
